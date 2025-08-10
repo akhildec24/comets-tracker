@@ -62,7 +62,7 @@
 
 	const handleIsolate = (enabled: boolean) => {
 		isolated = enabled;
-		sceneInstance?.setIsolatedView(enabled);
+		sceneInstance?.setIsolatedView(enabled, selected?.id);
 	};
 
 	const handleTimeChange = (newJD: number) => {

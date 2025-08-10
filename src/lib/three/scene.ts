@@ -703,9 +703,9 @@ export class SolarSystemScene {
 		this.followTarget = id;
 		this.followOffset.copy(offset);
 
-		// Update isolation target if isolation is active
+		// Store as isolation target and re-apply if isolation is active
+		this.isolatedId = id;
 		if (this.isolated) {
-			this.isolatedId = id;
 			this.applyIsolation();
 		}
 	}
@@ -714,9 +714,11 @@ export class SolarSystemScene {
 		this.followTarget = null;
 	}
 
-	public setIsolatedView(enabled: boolean) {
+	public setIsolatedView(enabled: boolean, id?: string) {
 		this.isolated = enabled;
-		if (!enabled) {
+		if (enabled && id) {
+			this.isolatedId = id;
+		} else if (!enabled) {
 			this.isolatedId = null;
 		}
 		this.applyIsolation();
