@@ -49,6 +49,7 @@ export class SolarSystemScene {
 	private followOffset: THREE.Vector3 = new THREE.Vector3();
 	private isolated: boolean = false;
 	private isolatedId: string | null = null;
+	private cameraTween: { from: THREE.Vector3; to: THREE.Vector3; targetFrom: THREE.Vector3; targetTo: THREE.Vector3; start: number; duration: number } | null = null;
 
 	public onSelect: (data: { type: string; id: string; name: string } | null) => void = () => {};
 	public onTimeUpdate: (jd: number) => void = () => {};
@@ -89,6 +90,7 @@ export class SolarSystemScene {
 		this.controls.maxDistance = 3000;
 		this.controls.addEventListener('start', () => {
 			this.followTarget = null;
+			this.cameraTween = null;
 		});
 
 		// Label container (HTML overlay for labels)
@@ -436,7 +438,7 @@ export class SolarSystemScene {
 	}
 
 	private createAsteroidBelt() {
-		const count = 3000;
+		const count = 4000;
 		const positions = new Float32Array(count * 3);
 		const colors = new Float32Array(count * 3);
 		const sizes = new Float32Array(count);
@@ -453,23 +455,52 @@ export class SolarSystemScene {
 			positions[i * 3 + 1] = r * Math.sin(incl);
 			positions[i * 3 + 2] = r * Math.sin(theta);
 
-			const brightness = 0.3 + Math.random() * 0.4;
-			colors[i * 3] = brightness * 0.8;
-			colors[i * 3 + 1] = brightness * 0.7;
-			colors[i * 3 + 2] = brightness * 0.5;
-			sizes[i] = 0.5 + Math.random() * 1.5;
+			// Rocky colors: grey-brown with variation
+			const brightness = 0.25 + Math.random() * 0.45;
+			const tint = Math.random();
+			colors[i * 3] = brightness * (0.7 + tint * 0.2);
+			colors[i * 3 + 1] = brightness * (0.6 + tint * 0.15);
+			colors[i * 3 + 2] = brightness * (0.45 + tint * 0.1);
+			sizes[i] = 0.8 + Math.random() * 2.5;
 		}
 
 		const geo = new THREE.BufferGeometry();
 		geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 		geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+		geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
 
-		const mat = new THREE.PointsMaterial({
-			size: 0.8,
-			vertexColors: true,
+		const mat = new THREE.ShaderMaterial({
+			uniforms: {
+				uPixelRatio: { value: this.renderer.getPixelRatio() },
+			},
+			vertexShader: `
+				attribute float aSize;
+				attribute vec3 color;
+				varying vec3 vColor;
+				uniform float uPixelRatio;
+				void main() {
+					vColor = color;
+					vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+					gl_PointSize = aSize * uPixelRatio * (300.0 / max(-mvPos.z, 1.0));
+					gl_Position = projectionMatrix * mvPos;
+				}
+			`,
+			fragmentShader: `
+				varying vec3 vColor;
+				void main() {
+					vec2 uv = gl_PointCoord - vec2(0.5);
+					float dist = length(uv);
+					if (dist > 0.5) discard;
+					// Soft circular edge
+					float alpha = smoothstep(0.5, 0.35, dist);
+					// Subtle irregular shading
+					float shade = 1.0 - dist * 0.6;
+					gl_FragColor = vec4(vColor * shade, alpha);
+				}
+			`,
 			transparent: true,
-			opacity: 0.6,
-			sizeAttenuation: true,
+			depthWrite: false,
+			blending: THREE.NormalBlending,
 		});
 
 		this.asteroidBelt = new THREE.Points(geo, mat);
@@ -693,13 +724,20 @@ export class SolarSystemScene {
 
 		const pos = target.position.clone();
 		const distance = id === 'sun' ? 50 : 30;
-		this.controls.target.copy(pos);
-
-		// Move camera to a nice viewing angle
 		const offset = new THREE.Vector3(distance, distance * 0.5, distance);
-		this.camera.position.copy(pos).add(offset);
+		const targetCamPos = pos.clone().add(offset);
 
-		// Enable follow mode
+		// Start smooth camera tween
+		this.cameraTween = {
+			from: this.camera.position.clone(),
+			to: targetCamPos,
+			targetFrom: this.controls.target.clone(),
+			targetTo: pos.clone(),
+			start: performance.now(),
+			duration: 1500, // 1.5 seconds
+		};
+
+		// Enable follow mode (will take over when tween completes)
 		this.followTarget = id;
 		this.followOffset.copy(offset);
 
@@ -708,6 +746,23 @@ export class SolarSystemScene {
 		if (this.isolated) {
 			this.applyIsolation();
 		}
+	}
+
+	private updateCameraTween(): boolean {
+		if (!this.cameraTween) return false;
+
+		const elapsed = performance.now() - this.cameraTween.start;
+		const t = Math.min(elapsed / this.cameraTween.duration, 1);
+		// EaseInOutCubic for smooth cinematic feel
+		const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+		this.camera.position.lerpVectors(this.cameraTween.from, this.cameraTween.to, ease);
+		this.controls.target.lerpVectors(this.cameraTween.targetFrom, this.cameraTween.targetTo, ease);
+
+		if (t >= 1) {
+			this.cameraTween = null;
+		}
+		return true;
 	}
 
 	public clearFollow() {
@@ -925,7 +980,8 @@ export class SolarSystemScene {
 		this.sunGlow.scale.setScalar(1 + Math.sin(t * 0.5) * 0.03);
 
 		// Camera follow: keep camera at fixed offset from followed object
-		if (this.followTarget) {
+		// Skip if camera tween is active (it takes priority)
+		if (this.followTarget && !this.cameraTween) {
 			let targetPos: THREE.Vector3 | null = null;
 			if (this.followTarget === 'sun') {
 				targetPos = this.sun.position;
@@ -938,6 +994,24 @@ export class SolarSystemScene {
 				this.controls.target.copy(targetPos);
 				this.camera.position.copy(targetPos).add(this.followOffset);
 			}
+		}
+
+		// Update camera tween (smooth cinematic transition)
+		if (this.cameraTween) {
+			// Update tween target to track moving planet
+			let targetPos: THREE.Vector3 | null = null;
+			if (this.followTarget === 'sun') {
+				targetPos = this.sun.position;
+			} else if (this.planetMeshes.has(this.followTarget ?? '')) {
+				targetPos = this.planetMeshes.get(this.followTarget!)!.position;
+			} else if (this.trackedBodies.has(this.followTarget ?? '')) {
+				targetPos = this.trackedBodies.get(this.followTarget!)!.mesh.position;
+			}
+			if (targetPos) {
+				this.cameraTween.targetTo.copy(targetPos);
+				this.cameraTween.to.copy(targetPos).add(this.followOffset);
+			}
+			this.updateCameraTween();
 		}
 
 		// Re-apply isolation filtering (proximity may change as objects orbit)
