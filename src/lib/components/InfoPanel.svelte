@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { SmallBody } from '$lib/types';
-	import { jdToDate } from '$lib/orbital';
+	import { jdToDate, orbitalPosition } from '$lib/orbital';
+	import { currentJD } from '$lib/orbital';
 
 	interface SelectedInfo {
 		type: string;
@@ -50,6 +51,39 @@
 		if (!jd) return '—';
 		return jdToDate(jd).toISOString().slice(0, 10);
 	};
+
+	// Compute distance from Earth in AU
+	const distanceFromEarth = $derived.by(() => {
+		if (!bodyData) return null;
+		const jd = currentJD();
+		const earthPos = orbitalPosition({ a: 1.0, e: 0.0167, i: 0, w: 114.208, omega: -11.260, ma: 358.617, epoch: 2451545.0 }, jd);
+		const bodyPos = orbitalPosition({
+			a: bodyData.orbit.a,
+			e: bodyData.orbit.e,
+			i: bodyData.orbit.i,
+			w: bodyData.orbit.w,
+			omega: bodyData.orbit.omega,
+			ma: bodyData.orbit.ma,
+			epoch: bodyData.orbit.epoch,
+		}, jd);
+		const dx = earthPos[0] - bodyPos[0];
+		const dy = earthPos[1] - bodyPos[1];
+		const dz = earthPos[2] - bodyPos[2];
+		// Convert scene units back to AU (50 scene units = 1 AU)
+		return Math.sqrt(dx * dx + dy * dy + dz * dz) / 50;
+	});
+
+	// Days since/before perihelion
+	const perihelionInfo = $derived.by(() => {
+		if (!bodyData?.orbit?.tp) return null;
+		const jd = currentJD();
+		const diff = bodyData.orbit.tp - jd;
+		return {
+			date: formatDate(bodyData.orbit.tp),
+			days: Math.round(Math.abs(diff)),
+			past: diff < 0,
+		};
+	});
 </script>
 
 {#if selected}
@@ -145,6 +179,34 @@
 						</div>
 					{/if}
 				</div>
+
+			{#if distanceFromEarth !== null}
+				<div class="data-section">
+					<div class="section-title">CURRENT POSITION</div>
+					<div class="data-row">
+						<span class="label">Distance from Earth</span>
+						<span class="value">{distanceFromEarth.toFixed(3)} AU</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Distance (km)</span>
+						<span class="value">{(distanceFromEarth * 149597870.7).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} km</span>
+					</div>
+				</div>
+			{/if}
+
+			{#if perihelionInfo}
+				<div class="data-section">
+					<div class="section-title">PERIHELION</div>
+					<div class="data-row">
+						<span class="label">Perihelion Date</span>
+						<span class="value">{perihelionInfo.date}</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Status</span>
+						<span class="value">{perihelionInfo.past ? `${perihelionInfo.days} days ago` : `in ${perihelionInfo.days} days`}</span>
+					</div>
+				</div>
+			{/if}
 
 				<button class="focus-btn" onclick={() => onFocus(selected.id)}>
 					⊙ FOCUS CAMERA
@@ -292,10 +354,10 @@
 		border: 1px solid rgba(0, 150, 200, 0.4);
 		color: #00ccff;
 		font-family: 'JetBrains Mono', monospace;
-		font-size: 11px;
+		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 1px;
-		border-radius: 3px;
+		border-radius: 4px;
 		cursor: pointer;
 		transition: all 0.2s;
 	}
@@ -314,10 +376,10 @@
 		border: 1px solid rgba(150, 100, 50, 0.3);
 		color: #c0a070;
 		font-family: 'JetBrains Mono', monospace;
-		font-size: 11px;
+		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 1px;
-		border-radius: 3px;
+		border-radius: 4px;
 		cursor: pointer;
 		transition: all 0.2s;
 	}

@@ -711,6 +711,16 @@ export class SolarSystemScene {
 		}
 	}
 
+	public setSmallBodyVisibility(kind: string, visible: boolean) {
+		for (const tracked of this.trackedBodies.values()) {
+			if (tracked.body.kind === kind) {
+				tracked.mesh.visible = visible;
+				tracked.orbitLine.visible = visible;
+				if (tracked.tail) tracked.tail.visible = visible;
+			}
+		}
+	}
+
 	public focusOn(id: string) {
 		let target: THREE.Object3D | null = null;
 		if (id === 'sun') {

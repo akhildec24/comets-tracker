@@ -30,6 +30,9 @@
 	let cacheStatus = $state('');
 	let refreshTimer: ReturnType<typeof setInterval> | null = null;
 	let isolated = $state(false);
+	let showComets = $state(true);
+	let showAsteroids = $state(true);
+	let showDormant = $state(true);
 
 	const findBody = (id: string): SmallBody | null => {
 		return trackedBodies.find(b => b.id === id || b.des === id || b.name === id) || null;
@@ -221,6 +224,17 @@
 			sceneInstance?.dispose();
 		};
 	});
+
+	// Sync filter toggles with 3D scene visibility
+	$effect(() => {
+		sceneInstance?.setSmallBodyVisibility('comet', showComets);
+	});
+	$effect(() => {
+		sceneInstance?.setSmallBodyVisibility('asteroid', showAsteroids);
+	});
+	$effect(() => {
+		sceneInstance?.setSmallBodyVisibility('dormant', showDormant);
+	});
 </script>
 
 <div class="app">
@@ -304,6 +318,9 @@
 					bodies={trackedBodies}
 					onSelect={handleObjectSelect}
 					onRemove={handleObjectRemove}
+					bind:showComets
+					bind:showAsteroids
+					bind:showDormant
 				/>
 				<div class="sidebar-actions">
 					<button class="action-btn" onclick={() => loadNotableObjects()} disabled={bodiesLoading}>
@@ -464,9 +481,9 @@
 		background: rgba(0, 150, 200, 0.2);
 		border: 1px solid rgba(0, 150, 200, 0.4);
 		color: #00ccff;
-		font-size: 16px;
-		width: 28px;
-		height: 28px;
+		font-size: 13px;
+		width: 32px;
+		height: 32px;
 		border-radius: 4px;
 		cursor: pointer;
 		display: flex;
@@ -581,7 +598,7 @@
 		font-family: 'JetBrains Mono', monospace;
 		font-size: 12px;
 		cursor: pointer;
-		border-radius: 3px;
+		border-radius: 4px;
 		text-align: left;
 		transition: all 0.15s;
 	}

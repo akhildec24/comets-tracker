@@ -112,14 +112,14 @@
 	}
 
 	.play-btn {
-		width: 36px;
-		height: 36px;
+		width: 32px;
+		height: 32px;
 		background: rgba(0, 100, 150, 0.3);
 		border: 1px solid rgba(0, 150, 200, 0.4);
 		color: #00ccff;
 		border-radius: 4px;
 		cursor: pointer;
-		font-size: 14px;
+		font-size: 13px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -141,7 +141,7 @@
 
 	.date-display {
 		font-family: 'Orbitron', sans-serif;
-		font-size: 14px;
+		font-size: 12px;
 		font-weight: 700;
 		color: #00ccff;
 		text-align: center;
@@ -184,7 +184,7 @@
 	.date-range {
 		display: flex;
 		justify-content: space-between;
-		font-size: 9px;
+		font-size: 8px;
 		color: #4a6080;
 	}
 
@@ -208,13 +208,13 @@
 	}
 
 	.speed-btn {
-		padding: 4px 8px;
+		padding: 6px 8px;
 		background: rgba(10, 20, 40, 0.6);
 		border: 1px solid rgba(60, 80, 120, 0.3);
 		color: #6080a0;
 		font-family: 'JetBrains Mono', monospace;
 		font-size: 10px;
-		border-radius: 2px;
+		border-radius: 4px;
 		cursor: pointer;
 		transition: all 0.2s;
 	}
@@ -231,7 +231,8 @@
 	}
 
 	.reset-btn {
-		padding: 8px 12px;
+		padding: 6px 12px;
+		height: 32px;
 		background: rgba(0, 100, 150, 0.2);
 		border: 1px solid rgba(0, 150, 200, 0.3);
 		color: #00aadd;
@@ -239,10 +240,13 @@
 		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 1px;
-		border-radius: 3px;
+		border-radius: 4px;
 		cursor: pointer;
 		transition: all 0.2s;
 		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.reset-btn:hover {

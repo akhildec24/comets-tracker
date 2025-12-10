@@ -4,12 +4,40 @@ const DEG_TO_RAD = Math.PI / 180;
 const AU_TO_SCENE = 50; // 1 AU = 50 scene units for display
 
 // Solve Kepler's equation: M = E - e*sin(E) using Newton-Raphson
-export function solveKepler(M: number, e: number, tol = 1e-8, maxIter = 30): number {
-	let E = M;
+// Enhanced for near-parabolic orbits (e close to 1)
+export function solveKepler(M: number, e: number, tol = 1e-8, maxIter = 50): number {
+	// Normalize M to [-PI, PI] for better convergence
+	let Mn = M % (2 * Math.PI);
+	if (Mn > Math.PI) Mn -= 2 * Math.PI;
+	if (Mn < -Math.PI) Mn += 2 * Math.PI;
+
+	// For near-parabolic orbits, use a better initial guess
+	let E: number;
+	if (e > 0.8) {
+		// Parabolic approximation: E ≈ M + e*sin(M) for small M
+		// For large M near parabolic, use M + e as starting point
+		E = Mn + e * Math.sin(Mn);
+		// Refine initial guess for very high eccentricity
+		if (e > 0.95) {
+			E = Mn + e * Math.sin(Mn) + 0.5 * e * e * Math.sin(2 * Mn);
+		}
+	} else {
+		E = Mn;
+	}
+
 	for (let i = 0; i < maxIter; i++) {
-		const dE = (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+		const sinE = Math.sin(E);
+		const cosE = Math.cos(E);
+		const f = E - e * sinE - Mn;
+		const fp = 1 - e * cosE;
+		const dE = f / fp;
 		E -= dE;
 		if (Math.abs(dE) < tol) break;
+		// Safety: if E diverges, clamp it
+		if (Math.abs(E) > 4 * Math.PI) {
+			E = Math.sign(E) * 4 * Math.PI;
+			break;
+		}
 	}
 	return E;
 }
@@ -46,9 +74,12 @@ export function orbitalPosition(orbit: OrbitalElements, jd: number): [number, nu
 	// Heliocentric distance (AU)
 	const r = a * (1 - e * cosE);
 
+	// Clamp distance for near-parabolic orbits to prevent extreme jumps
+	const rClamped = Math.min(r, a * (1 + e) * 2);
+
 	// Position in orbital plane
-	const xp = r * Math.cos(trueAnomaly);
-	const yp = r * Math.sin(trueAnomaly);
+	const xp = rClamped * Math.cos(trueAnomaly);
+	const yp = rClamped * Math.sin(trueAnomaly);
 
 	// Rotate by argument of perihelion
 	const xw = xp * Math.cos(w) - yp * Math.sin(w);
