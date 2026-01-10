@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { jdToDate, dateToJD, currentJD } from '$lib/orbital';
+	import type { SmallBody } from '$lib/types';
 
 	let {
 		jd = currentJD(),
 		paused = false,
 		speed = 1,
+		bodies = [],
 		onTimeChange,
 		onPauseToggle,
 		onSpeedChange
@@ -12,17 +14,17 @@
 		jd: number;
 		paused: boolean;
 		speed: number;
+		bodies?: SmallBody[];
 		onTimeChange: (jd: number) => void;
 		onPauseToggle: () => void;
 		onSpeedChange: (speed: number) => void;
 	} = $props();
 
 	const speeds = [0.1, 1, 10, 50, 100, 365];
-	const speedLabels = ['0.1×', '1×', '10×', '50×', '100×', '1yr/s'];
+	const speedLabels = ['0.1x', '1x', '10x', '50x', '100x', '1yr/s'];
 
 	let sliderValue = $state(0);
 
-	// Keep slider in sync with jd from parent
 	$effect(() => {
 		sliderValue = jd;
 	});
@@ -42,15 +44,31 @@
 	const resetToNow = () => {
 		onTimeChange(currentJD());
 	};
+
+	const jumpForward = (days: number) => {
+		onTimeChange(jd + days);
+	};
+
+	const jumpToNextPerihelion = () => {
+		let nextJD = Infinity;
+		for (const body of bodies) {
+			if (body.orbit.tp && body.orbit.tp > jd && body.orbit.tp < nextJD) {
+				nextJD = body.orbit.tp;
+			}
+		}
+		if (nextJD !== Infinity) {
+			onTimeChange(nextJD);
+		}
+	};
 </script>
 
 <div class="timeline-container">
 	<div class="timeline-bar">
 		<button class="play-btn" onclick={onPauseToggle}>
 			{#if paused}
-				▶
+				{'\u25B6'}
 			{:else}
-				⏸
+				{'\u23F8'}
 			{/if}
 		</button>
 
@@ -69,6 +87,16 @@
 				<span>2000</span>
 				<span>2025</span>
 				<span>2050</span>
+			</div>
+		</div>
+
+		<div class="preset-section">
+			<div class="preset-label">JUMP</div>
+			<div class="preset-buttons">
+				<button class="preset-btn" onclick={() => jumpForward(7)} title="1 week forward">1W</button>
+				<button class="preset-btn" onclick={() => jumpForward(30)} title="1 month forward">1M</button>
+				<button class="preset-btn" onclick={() => jumpForward(365)} title="1 year forward">1Y</button>
+				<button class="preset-btn" onclick={jumpToNextPerihelion} title="Next perihelion">PERI</button>
 			</div>
 		</div>
 
@@ -193,6 +221,44 @@
 		flex-direction: column;
 		gap: 2px;
 		flex-shrink: 0;
+	}
+
+	.preset-section {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		flex-shrink: 0;
+	}
+
+	.preset-label {
+		font-size: 8px;
+		color: #4a6080;
+		letter-spacing: 1px;
+		text-align: center;
+	}
+
+	.preset-buttons {
+		display: flex;
+		gap: 2px;
+	}
+
+	.preset-btn {
+		padding: 6px 8px;
+		background: rgba(10, 20, 40, 0.6);
+		border: 1px solid rgba(60, 80, 120, 0.3);
+		color: #6080a0;
+		font-family: 'Orbitron', sans-serif;
+		font-size: 9px;
+		font-weight: 700;
+		border-radius: 4px;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.preset-btn:hover {
+		border-color: rgba(0, 150, 200, 0.4);
+		color: #00ccff;
+		background: rgba(0, 100, 150, 0.2);
 	}
 
 	.speed-label {

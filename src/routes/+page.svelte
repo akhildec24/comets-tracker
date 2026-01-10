@@ -33,6 +33,9 @@
 	let showComets = $state(true);
 	let showAsteroids = $state(true);
 	let showDormant = $state(true);
+	let showLabels = $state(true);
+	let showTrails = $state(false);
+	let logScale = $state(false);
 
 	const findBody = (id: string): SmallBody | null => {
 		return trackedBodies.find(b => b.id === id || b.des === id || b.name === id) || null;
@@ -235,6 +238,15 @@
 	$effect(() => {
 		sceneInstance?.setSmallBodyVisibility('dormant', showDormant);
 	});
+	$effect(() => {
+		sceneInstance?.setLabelsVisible(showLabels);
+	});
+	$effect(() => {
+		sceneInstance?.setTrailsVisible(showTrails);
+	});
+	$effect(() => {
+		sceneInstance?.setLogScale(logScale);
+	});
 </script>
 
 <div class="app">
@@ -265,6 +277,15 @@
 				<span class="status-label">TRACKED</span>
 				<span class="status-value">{trackedBodies.length}</span>
 			</div>
+			<button class="toggle-btn" class:active={showLabels} onclick={() => { showLabels = !showLabels; }} title="Toggle labels">
+				LABELS
+			</button>
+			<button class="toggle-btn" class:active={showTrails} onclick={() => { showTrails = !showTrails; }} title="Toggle orbit trails">
+				TRAILS
+			</button>
+			<button class="toggle-btn" class:active={logScale} onclick={() => { logScale = !logScale; }} title="Toggle log-scale distances (spreads out inner planets)">
+				SCALE
+			</button>
 			<button class="refresh-btn" onclick={() => refreshData()} title="Refresh from NASA">
 				↻
 			</button>
@@ -390,6 +411,7 @@
 		{jd}
 		{paused}
 		{speed}
+		bodies={trackedBodies}
 		onTimeChange={handleTimeChange}
 		onPauseToggle={handlePauseToggle}
 		onSpeedChange={handleSpeedChange}
@@ -495,6 +517,33 @@
 	.refresh-btn:hover {
 		background: rgba(0, 150, 200, 0.4);
 		border-color: #00ccff;
+	}
+
+	.toggle-btn {
+		background: rgba(10, 20, 40, 0.6);
+		border: 1px solid rgba(60, 80, 120, 0.3);
+		color: #6080a0;
+		font-family: 'Orbitron', sans-serif;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 1px;
+		padding: 0 10px;
+		height: 32px;
+		border-radius: 4px;
+		cursor: pointer;
+		transition: all 0.2s;
+		white-space: nowrap;
+	}
+
+	.toggle-btn.active {
+		background: rgba(0, 150, 200, 0.2);
+		border-color: rgba(0, 150, 200, 0.4);
+		color: #00ccff;
+	}
+
+	.toggle-btn:hover {
+		border-color: rgba(0, 150, 200, 0.4);
+		color: #80a0c0;
 	}
 
 	.cache-status {

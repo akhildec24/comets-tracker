@@ -15,6 +15,7 @@ interface TrackedBody {
 	orbitLine: THREE.Line;
 	label: string;
 	tail: THREE.Points | null;
+	dustTail: THREE.Points | null;
 }
 
 export class SolarSystemScene {
@@ -56,6 +57,12 @@ export class SolarSystemScene {
 
 	private labels: Map<string, HTMLDivElement> = new Map();
 	private labelContainer: HTMLDivElement;
+	private labelsVisible = true;
+	private trails: Map<string, THREE.Line> = new Map();
+	private trailPositions: Map<string, THREE.Vector3[]> = new Map();
+	private trailsVisible = false;
+	private readonly TRAIL_MAX_POINTS = 100;
+	private logScale = false;
 
 	constructor(container: HTMLElement) {
 		this.container = container;
@@ -530,9 +537,16 @@ export class SolarSystemScene {
 			const yp = r * Math.sin(ta);
 			const xw = xp * cosW - yp * sinW;
 			const yw = xp * sinW + yp * cosW;
-			const x = cosO * xw - sinO * yw * cosI;
-			const y = sinO * xw + cosO * yw * cosI;
-			const z = yw * sinI;
+			let x = cosO * xw - sinO * yw * cosI;
+			let y = sinO * xw + cosO * yw * cosI;
+			let z = yw * sinI;
+			if (this.logScale) {
+				const dist = Math.sqrt(x * x + y * y + z * z);
+				if (dist > 0) {
+					const scale = this.scaleDistance(dist) / dist;
+					x *= scale; y *= scale; z *= scale;
+				}
+			}
 			points.push(new THREE.Vector3(x, z, y));
 		}
 
@@ -597,7 +611,14 @@ export class SolarSystemScene {
 		if (this.trackedBodies.has(body.id)) return;
 
 		const isComet = body.kind === 'comet';
-		const size = isComet ? 0.4 : 0.3;
+		// Size based on absolute magnitude if available (brighter = bigger)
+		const baseSize = isComet ? 0.4 : 0.3;
+		const hMag = body.h;
+		let size = baseSize;
+		if (hMag !== undefined) {
+			// H=3 -> large, H=15 -> small. Scale: size = baseSize * (1 + (12-hMag)/20)
+			size = baseSize * Math.max(0.3, Math.min(2.5, 1 + (12 - hMag) / 20));
+		}
 		const color = isComet ? 0x00ffff : 0xff8844;
 
 		// Body mesh
@@ -624,48 +645,78 @@ export class SolarSystemScene {
 		const orbitLine = new THREE.Line(orbitGeo, orbitMat);
 		this.scene.add(orbitLine);
 
-		// Comet tail (particle-based, oriented away from sun in updatePositions)
+		// Comet tails: ion (blue, straight) + dust (white, curved/spread)
 		let tail: THREE.Points | null = null;
+		let dustTail: THREE.Points | null = null;
 		if (isComet) {
-			const tailParticleCount = 200;
-			const tailPositions = new Float32Array(tailParticleCount * 3);
-			const tailColors = new Float32Array(tailParticleCount * 3);
-			const tailSizes = new Float32Array(tailParticleCount);
-
-			for (let i = 0; i < tailParticleCount; i++) {
-				const t = i / tailParticleCount;
-				const spread = 0.5 + t * 2.5;
-				tailPositions[i * 3] = (Math.random() - 0.5) * spread;
-				tailPositions[i * 3 + 1] = (Math.random() - 0.5) * spread;
-				tailPositions[i * 3 + 2] = t * 20; // tail extends along +Z, will be oriented away from sun
+			// Ion tail - blue, narrow, long
+			const ionCount = 150;
+			const ionPositions = new Float32Array(ionCount * 3);
+			const ionColors = new Float32Array(ionCount * 3);
+			for (let i = 0; i < ionCount; i++) {
+				const t = i / ionCount;
+				const spread = 0.3 + t * 0.8;
+				ionPositions[i * 3] = (Math.random() - 0.5) * spread;
+				ionPositions[i * 3 + 1] = (Math.random() - 0.5) * spread;
+				ionPositions[i * 3 + 2] = t * 30; // long straight tail along +Z
 
 				const fade = 1 - t;
-				tailColors[i * 3] = 0.4 * fade + 0.1;
-				tailColors[i * 3 + 1] = 0.7 * fade + 0.1;
-				tailColors[i * 3 + 2] = 1.0 * fade + 0.1;
-				tailSizes[i] = (1 - t) * 2 + 0.3;
+				ionColors[i * 3] = 0.2 * fade;
+				ionColors[i * 3 + 1] = 0.5 * fade;
+				ionColors[i * 3 + 2] = 1.0 * fade;
 			}
-
-			const tailGeo = new THREE.BufferGeometry();
-			tailGeo.setAttribute('position', new THREE.BufferAttribute(tailPositions, 3));
-			tailGeo.setAttribute('color', new THREE.BufferAttribute(tailColors, 3));
-
-			const tailMat = new THREE.PointsMaterial({
-				size: 1.5,
+			const ionGeo = new THREE.BufferGeometry();
+			ionGeo.setAttribute('position', new THREE.BufferAttribute(ionPositions, 3));
+			ionGeo.setAttribute('color', new THREE.BufferAttribute(ionColors, 3));
+			const ionMat = new THREE.PointsMaterial({
+				size: 1.2,
 				vertexColors: true,
 				transparent: true,
-				opacity: 0.6,
+				opacity: 0.7,
 				blending: THREE.AdditiveBlending,
 				depthWrite: false,
 				sizeAttenuation: true,
 			});
-			tail = new THREE.Points(tailGeo, tailMat);
+			tail = new THREE.Points(ionGeo, ionMat);
 			this.scene.add(tail);
+
+			// Dust tail - white/yellow, wider, shorter, more spread
+			const dustCount = 120;
+			const dustPositions = new Float32Array(dustCount * 3);
+			const dustColors = new Float32Array(dustCount * 3);
+			for (let i = 0; i < dustCount; i++) {
+				const t = i / dustCount;
+				const spread = 1.0 + t * 3.5;
+				// Dust tail curves slightly (offset in X based on t)
+				const curve = t * t * 4;
+				dustPositions[i * 3] = (Math.random() - 0.5) * spread + curve;
+				dustPositions[i * 3 + 1] = (Math.random() - 0.5) * spread;
+				dustPositions[i * 3 + 2] = t * 18; // shorter than ion tail
+
+				const fade = 1 - t;
+				dustColors[i * 3] = 0.9 * fade;
+				dustColors[i * 3 + 1] = 0.85 * fade;
+				dustColors[i * 3 + 2] = 0.6 * fade;
+			}
+			const dustGeo = new THREE.BufferGeometry();
+			dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+			dustGeo.setAttribute('color', new THREE.BufferAttribute(dustColors, 3));
+			const dustMat = new THREE.PointsMaterial({
+				size: 1.8,
+				vertexColors: true,
+				transparent: true,
+				opacity: 0.5,
+				blending: THREE.AdditiveBlending,
+				depthWrite: false,
+				sizeAttenuation: true,
+			});
+			dustTail = new THREE.Points(dustGeo, dustMat);
+			this.scene.add(dustTail);
 		}
 
 		this.createLabel(body.id, body.name || body.des, isComet ? '#00ffff' : '#ff8844');
 
-		this.trackedBodies.set(body.id, { body, mesh, orbitLine, label: body.name || body.des, tail });
+		this.trackedBodies.set(body.id, { body, mesh, orbitLine, label: body.name || body.des, tail, dustTail });
 	}
 
 	public removeSmallBody(id: string) {
@@ -675,6 +726,9 @@ export class SolarSystemScene {
 		this.scene.remove(tracked.orbitLine);
 		if (tracked.tail) {
 			this.scene.remove(tracked.tail);
+		}
+		if (tracked.dustTail) {
+			this.scene.remove(tracked.dustTail);
 		}
 		const label = this.labels.get(id);
 		if (label) {
@@ -717,8 +771,79 @@ export class SolarSystemScene {
 				tracked.mesh.visible = visible;
 				tracked.orbitLine.visible = visible;
 				if (tracked.tail) tracked.tail.visible = visible;
+				if (tracked.dustTail) tracked.dustTail.visible = visible;
 			}
 		}
+	}
+
+	public setLabelsVisible(visible: boolean) {
+		this.labelsVisible = visible;
+		this.labelContainer.style.display = visible ? 'block' : 'none';
+	}
+
+	public setTrailsVisible(visible: boolean) {
+		this.trailsVisible = visible;
+		if (!visible) {
+			for (const trail of this.trails.values()) {
+				trail.visible = false;
+			}
+			this.trailPositions.clear();
+		} else {
+			for (const trail of this.trails.values()) {
+				trail.visible = true;
+			}
+		}
+	}
+
+	private scaleDistance(r: number): number {
+		if (this.logScale) {
+			// log scale: compresses outer planets, keeps inner planets visible
+			// log(1 + r_au) * 50 / log(2) so Earth (1 AU) stays at 50 units
+			return Math.log(1 + r) * 50 / Math.log(2);
+		}
+		return r;
+	}
+
+	public setLogScale(enabled: boolean) {
+		this.logScale = enabled;
+		// Regenerate planet orbit lines with new scale
+		for (const [name, oldOrbit] of this.planetOrbits) {
+			this.scene.remove(oldOrbit);
+			const planet = PLANETS.find(p => p.name === name);
+			if (planet) {
+				const newOrbit = this.createPlanetOrbit(planet);
+				this.scene.add(newOrbit);
+				this.planetOrbits.set(name, newOrbit);
+			}
+		}
+		// Regenerate small body orbit lines
+		for (const [, tracked] of this.trackedBodies) {
+			this.scene.remove(tracked.orbitLine);
+			const orbitPoints = orbitPath(tracked.body.orbit, 256);
+			if (this.logScale) {
+				for (let i = 0; i < orbitPoints.length; i += 3) {
+					const x = orbitPoints[i], y = orbitPoints[i + 1], z = orbitPoints[i + 2];
+					const r = Math.sqrt(x * x + y * y + z * z);
+					if (r > 0) {
+						const scale = this.scaleDistance(r) / r;
+						orbitPoints[i] = x * scale;
+						orbitPoints[i + 1] = y * scale;
+						orbitPoints[i + 2] = z * scale;
+					}
+				}
+			}
+			const orbitGeo = new THREE.BufferGeometry();
+			orbitGeo.setAttribute('position', new THREE.BufferAttribute(orbitPoints, 3));
+			const orbitMat = new THREE.LineBasicMaterial({
+				color: tracked.body.kind === 'comet' ? 0x00ffff : 0xff8844,
+				transparent: true,
+				opacity: 0.5,
+			});
+			tracked.orbitLine = new THREE.Line(orbitGeo, orbitMat);
+			this.scene.add(tracked.orbitLine);
+		}
+		// Clear trails since positions will jump
+		this.trailPositions.clear();
 	}
 
 	public focusOn(id: string) {
@@ -918,14 +1043,24 @@ export class SolarSystemScene {
 			const cosI = Math.cos(inc);
 			const sinI = Math.sin(inc);
 
-			mesh.position.set(
-				cosO * xw - sinO * yw * cosI,
-				yw * sinI,
-				sinO * xw + cosO * yw * cosI
-			);
+			const px = cosO * xw - sinO * yw * cosI;
+			const py = yw * sinI;
+			const pz = sinO * xw + cosO * yw * cosI;
 
-			// Rotate planet at its individual speed
-			mesh.rotation.y += planet.rotationSpeed ?? 0.005;
+			if (this.logScale) {
+				const r = Math.sqrt(px * px + py * py + pz * pz);
+				if (r > 0) {
+					const scale = this.scaleDistance(r) / r;
+					mesh.position.set(px * scale, py * scale, pz * scale);
+				} else {
+					mesh.position.set(px, py, pz);
+				}
+			} else {
+				mesh.position.set(px, py, pz);
+			}
+
+			// Rotate planet at its individual speed (scaled by time speed and frame delta)
+			mesh.rotation.y += (planet.rotationSpeed ?? 0.005) * this.timeSpeed * this.frameDelta * 60;
 		}
 
 		// Update Moon position (orbits Earth)
@@ -957,7 +1092,7 @@ export class SolarSystemScene {
 					earthMesh.position.y + my * Math.sin(incRad),
 					earthMesh.position.z + my * Math.cos(incRad)
 				);
-				this.moon.rotation.y += 0.003;
+				this.moon.rotation.y += 0.003 * this.timeSpeed * this.frameDelta * 60;
 			}
 		}
 
@@ -969,21 +1104,95 @@ export class SolarSystemScene {
 		// Update small bodies
 		for (const [, tracked] of this.trackedBodies) {
 			const [x, y, z] = orbitalPosition(tracked.body.orbit, this.currentJD);
-			tracked.mesh.position.set(x, y, z);
 
-			// Orient comet tail away from sun
-			if (tracked.body.kind === 'comet' && tracked.tail) {
+			if (this.logScale) {
+				const r = Math.sqrt(x * x + y * y + z * z);
+				if (r > 0) {
+					const scale = this.scaleDistance(r) / r;
+					tracked.mesh.position.set(x * scale, y * scale, z * scale);
+				} else {
+					tracked.mesh.position.set(x, y, z);
+				}
+			} else {
+				tracked.mesh.position.set(x, y, z);
+			}
+
+			// Orient comet tails away from sun, scale by distance
+			if (tracked.body.kind === 'comet') {
 				tracked.mesh.lookAt(0, 0, 0);
 				tracked.mesh.rotateX(Math.PI);
-				// Position tail at comet and orient it away from sun
+
+				const distFromSun = tracked.mesh.position.length();
+				// Tails are more prominent when closer to sun (inverse scaling)
+				// At 1 AU -> full tail, at 5 AU -> 20% tail, beyond 10 AU -> minimal
+				const tailScale = Math.max(0.1, Math.min(1.5, 1.5 / (distFromSun / 50)));
+
 				const dir = tracked.mesh.position.clone().normalize();
-				tracked.tail.position.copy(tracked.mesh.position);
-				tracked.tail.lookAt(tracked.mesh.position.clone().add(dir));
+
+				if (tracked.tail) {
+					tracked.tail.position.copy(tracked.mesh.position);
+					tracked.tail.lookAt(tracked.mesh.position.clone().add(dir));
+					tracked.tail.scale.setScalar(tailScale);
+					// Fade opacity with distance
+					(tracked.tail.material as THREE.PointsMaterial).opacity = 0.7 * tailScale;
+				}
+				if (tracked.dustTail) {
+					tracked.dustTail.position.copy(tracked.mesh.position);
+					tracked.dustTail.lookAt(tracked.mesh.position.clone().add(dir));
+					tracked.dustTail.scale.setScalar(tailScale);
+					(tracked.dustTail.material as THREE.PointsMaterial).opacity = 0.5 * tailScale;
+				}
+			}
+		}
+
+		// Update trails
+		if (this.trailsVisible) {
+			const updateTrail = (id: string, pos: THREE.Vector3, color: number) => {
+				let positions = this.trailPositions.get(id);
+				if (!positions) {
+					positions = [];
+					this.trailPositions.set(id, positions);
+				}
+				// Add current position
+				positions.push(pos.clone());
+				if (positions.length > this.TRAIL_MAX_POINTS) {
+					positions.shift();
+				}
+				// Update or create trail line
+				let trail = this.trails.get(id);
+				if (!trail) {
+					const geo = new THREE.BufferGeometry();
+					geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(this.TRAIL_MAX_POINTS * 3), 3));
+					const mat = new THREE.LineBasicMaterial({
+						color,
+						transparent: true,
+						opacity: 0.4,
+					});
+					trail = new THREE.Line(geo, mat);
+					this.scene.add(trail);
+					this.trails.set(id, trail);
+				}
+				const arr = trail.geometry.getAttribute('position').array as Float32Array;
+				for (let i = 0; i < positions.length; i++) {
+					arr[i * 3] = positions[i].x;
+					arr[i * 3 + 1] = positions[i].y;
+					arr[i * 3 + 2] = positions[i].z;
+				}
+				trail.geometry.setDrawRange(0, positions.length);
+				trail.geometry.getAttribute('position').needsUpdate = true;
+			};
+
+			for (const [name, mesh] of this.planetMeshes) {
+				updateTrail(name, mesh.position, 0x4488ff);
+			}
+			for (const [id, tracked] of this.trackedBodies) {
+				const color = tracked.body.kind === 'comet' ? 0x00ffff : 0xff8844;
+				updateTrail(id, tracked.mesh.position, color);
 			}
 		}
 
 		// Rotate sun
-		this.sun.rotation.y += 0.0008;
+		this.sun.rotation.y += 0.0008 * this.timeSpeed * this.frameDelta * 60;
 
 		// Pulse sun glow
 		const t = performance.now() * 0.001;
@@ -1032,11 +1241,13 @@ export class SolarSystemScene {
 
 	private clock = new THREE.Clock();
 	private lastTimeUpdate = 0;
+	private frameDelta = 0;
 
 	private animate = () => {
 		this.animationId = requestAnimationFrame(this.animate);
 
 		const delta = this.clock.getDelta();
+		this.frameDelta = delta;
 
 		if (!this.paused) {
 			this.currentJD += this.timeSpeed * delta;
@@ -1061,7 +1272,7 @@ export class SolarSystemScene {
 
 		// Earth clouds rotate independently
 		if (this.earthClouds) {
-			this.earthClouds.rotation.y += 0.015;
+			this.earthClouds.rotation.y += 0.015 * this.timeSpeed * this.frameDelta * 60;
 		}
 
 		// Render with bloom post-processing
