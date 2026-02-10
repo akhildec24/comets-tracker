@@ -18,6 +18,14 @@ interface TrackedBody {
 	dustTail: THREE.Points | null;
 }
 
+interface GalileanMoon {
+	mesh: THREE.Mesh;
+	orbitRadius: number;
+	period: number; // days
+	phase: number; // initial angle
+	color: number;
+}
+
 export class SolarSystemScene {
 	private renderer: THREE.WebGLRenderer;
 	private scene: THREE.Scene;
@@ -34,6 +42,7 @@ export class SolarSystemScene {
 	private asteroidBelt: THREE.Points | null = null;
 	private atmospheres: Map<string, THREE.Mesh> = new Map();
 	private earthClouds: THREE.Mesh | null = null;
+	private galileanMoons: GalileanMoon[] = [];
 	private composer: EffectComposer | null = null;
 	private bloomPass: UnrealBloomPass | null = null;
 
@@ -136,6 +145,9 @@ export class SolarSystemScene {
 
 		// Earth's Moon
 		this.createMoon();
+
+		// Jupiter's Galilean moons
+		this.createGalileanMoons();
 
 		// Asteroid belt
 		this.createAsteroidBelt();
@@ -442,6 +454,58 @@ export class SolarSystemScene {
 		this.scene.add(mesh);
 		this.moon = mesh;
 		this.createLabel('moon', 'Moon', '#aaaaaa');
+	}
+
+	private createGalileanMoons() {
+		// Jupiter radius is 4.0 scene units; moons orbit at 6-14 units from Jupiter
+		const moonData = [
+			{ name: 'Io', radius: 0.25, orbitRadius: 6.0, period: 1.769, color: 0xffe066, phase: 0 },
+			{ name: 'Europa', radius: 0.22, orbitRadius: 8.0, period: 3.551, color: 0xd4c5a0, phase: 1.2 },
+			{ name: 'Ganymede', radius: 0.35, orbitRadius: 10.5, period: 7.155, color: 0x9a8b7a, phase: 2.5 },
+			{ name: 'Callisto', radius: 0.32, orbitRadius: 13.5, period: 16.689, color: 0x6b6258, phase: 4.0 },
+		];
+
+		for (const data of moonData) {
+			const geo = new THREE.SphereGeometry(data.radius, 32, 16);
+			const mat = new THREE.MeshStandardMaterial({
+				color: data.color,
+				roughness: 0.8,
+				metalness: 0.0,
+				emissive: data.color,
+				emissiveIntensity: 0.1,
+			});
+			const mesh = new THREE.Mesh(geo, mat);
+			mesh.userData = { type: 'galilean', id: data.name, name: data.name };
+			this.scene.add(mesh);
+
+			// Orbit line around Jupiter (will be positioned relative to Jupiter each frame)
+			const orbitGeo = new THREE.BufferGeometry();
+			const segments = 64;
+			const orbitPoints = new Float32Array((segments + 1) * 3);
+			for (let s = 0; s <= segments; s++) {
+				const angle = (s / segments) * 2 * Math.PI;
+				orbitPoints[s * 3] = Math.cos(angle) * data.orbitRadius;
+				orbitPoints[s * 3 + 1] = 0;
+				orbitPoints[s * 3 + 2] = Math.sin(angle) * data.orbitRadius;
+			}
+			orbitGeo.setAttribute('position', new THREE.BufferAttribute(orbitPoints, 3));
+			const orbitMat = new THREE.LineBasicMaterial({
+				color: data.color,
+				transparent: true,
+				opacity: 0.2,
+			});
+			const orbitLine = new THREE.Line(orbitGeo, orbitMat);
+			orbitLine.userData = { galileanOrbit: true, parent: 'Jupiter' };
+			this.scene.add(orbitLine);
+
+			this.galileanMoons.push({
+				mesh,
+				orbitRadius: data.orbitRadius,
+				period: data.period,
+				phase: data.phase,
+				color: data.color,
+			});
+		}
 	}
 
 	private createAsteroidBelt() {
@@ -970,6 +1034,17 @@ export class SolarSystemScene {
 			this.moon.visible = this.isolatedId === 'Earth' || this.isolatedId === 'moon';
 		}
 
+		// Galilean moons: show only if focusing on Jupiter
+		const showGalilean = this.isolatedId === 'Jupiter';
+		for (const gm of this.galileanMoons) {
+			gm.mesh.visible = showGalilean;
+		}
+		for (const child of this.scene.children) {
+			if (child.userData?.galileanOrbit) {
+				child.visible = showGalilean;
+			}
+		}
+
 		// Small bodies: show only those within proximity of the focused object
 		const proximityThreshold = 100; // scene units (~2 AU)
 		for (const [, tracked] of this.trackedBodies) {
@@ -1093,6 +1168,30 @@ export class SolarSystemScene {
 					earthMesh.position.z + my * Math.cos(incRad)
 				);
 				this.moon.rotation.y += 0.003 * this.timeSpeed * this.frameDelta * 60;
+			}
+		}
+
+		// Update Galilean moons (orbit Jupiter)
+		const jupiter = this.planetMeshes.get('Jupiter');
+		if (jupiter && this.galileanMoons.length > 0) {
+			const dt = this.currentJD - 2451545.0; // days since J2000
+			for (const gm of this.galileanMoons) {
+				const angle = (2 * Math.PI * dt / gm.period) + gm.phase;
+				const incRad = 0.5 * Math.PI / 180;
+				const x = Math.cos(angle) * gm.orbitRadius;
+				const z = Math.sin(angle) * gm.orbitRadius;
+				gm.mesh.position.set(
+					jupiter.position.x + x,
+					jupiter.position.y + z * Math.sin(incRad),
+					jupiter.position.z + z * Math.cos(incRad)
+				);
+				gm.mesh.rotation.y += 0.01 * this.timeSpeed * this.frameDelta * 60;
+			}
+			// Move orbit lines to follow Jupiter
+			for (const child of this.scene.children) {
+				if (child.userData?.galileanOrbit) {
+					child.position.copy(jupiter.position);
+				}
 			}
 		}
 
