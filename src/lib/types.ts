@@ -66,3 +66,20 @@ export interface SceneObject {
 	mesh: unknown;
 	position?: { x: number; y: number; z: number };
 }
+
+export interface Spacecraft {
+	id: string;
+	name: string;
+	naifId: number; // negative NAIF ID for JPL Horizons
+	launchDate: string; // ISO date
+	color: number;
+	description: string;
+	status: 'active' | 'silent';
+}
+
+export interface TrajectoryPoint {
+	jd: number;
+	x: number; // scene units
+	y: number;
+	z: number;
+}

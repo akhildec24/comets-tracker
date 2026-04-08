@@ -1,4 +1,4 @@
-import type { SmallBody, CloseApproach, OrbitalElements } from '$lib/types';
+import type { SmallBody, CloseApproach, OrbitalElements, TrajectoryPoint } from '$lib/types';
 
 const PROXY_URL = '/api/nasa';
 
@@ -334,6 +334,76 @@ export async function getHorizonsEphemeris(
 				}
 			}
 		}
+		return result;
+	} catch {
+		return [];
+	}
+}
+
+// Fetch spacecraft trajectory from JPL Horizons using NAIF ID
+// Returns positions in AU (heliocentric ecliptic) converted to scene units
+const AU_TO_SCENE = 50;
+
+export async function getSpacecraftTrajectory(
+	naifId: number,
+	startDate: string,
+	endDate: string,
+	step: string = '30d',
+	forceRefresh = false
+): Promise<TrajectoryPoint[]> {
+	const cacheKey = `spacecraft_${naifId}`;
+
+	if (!forceRefresh) {
+		const cached = getCached<TrajectoryPoint[]>(cacheKey);
+		if (cached && !isCacheStale(cacheKey, CACHE_TTL_LOOKUP)) return cached;
+	}
+
+	const params = new URLSearchParams({
+		'format': 'json',
+		'COMMAND': `'DES=${naifId};'`,
+		'CENTER': '500@0',
+		'VECTOR_TABLE': "'6,7'",
+		'START_TIME': startDate,
+		'STOP_TIME': endDate,
+		'STEP_SIZE': step,
+		'OBJ_DATA': 'NO',
+		'MAKE_EPHEMERIS': 'YES',
+		'EPHEMERIS_TYPE': 'VECTOR'
+	});
+
+	try {
+		const res = await fetch(buildProxyUrl('horizons', params));
+		if (!res.ok) return [];
+		const json = await res.json();
+		const result: TrajectoryPoint[] = [];
+		if (json.result) {
+			const lines = String(json.result).split('\n');
+			let inData = false;
+			for (const line of lines) {
+				if (line.includes('$$SOE')) { inData = true; continue; }
+				if (line.includes('$$EOE')) break;
+				if (inData && line.trim()) {
+					const parts = line.trim().split(/\s+/);
+					if (parts.length >= 6) {
+						const jd = parseFloat(parts[0]);
+						const x = parseFloat(parts[2]);
+						const y = parseFloat(parts[3]);
+						const z = parseFloat(parts[4]);
+						if (!isNaN(jd) && !isNaN(x)) {
+							// Horizons returns AU in ecliptic frame: x, y, z
+							// Map to scene units and Three.js coordinate system (x->x, z->y up, y->z)
+							result.push({
+								jd,
+								x: x * AU_TO_SCENE,
+								y: z * AU_TO_SCENE,
+								z: y * AU_TO_SCENE,
+							});
+						}
+					}
+				}
+			}
+		}
+		if (result.length > 0) setCached(cacheKey, result);
 		return result;
 	} catch {
 		return [];

@@ -4,10 +4,11 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import type { PlanetData, SmallBody } from '$lib/types';
-import { PLANETS, SUN_DATA, MOON_DATA } from '$lib/solarSystem';
+import type { PlanetData, SmallBody, Spacecraft, TrajectoryPoint } from '$lib/types';
+import { PLANETS, SUN_DATA, MOON_DATA, INTERSTELLAR_MISSIONS } from '$lib/solarSystem';
 import { orbitalPosition, orbitPath, currentJD, dateToJD } from '$lib/orbital';
 import { createPlanetTexture, createSunGlowTexture } from './textures';
+import { getSpacecraftTrajectory } from '$lib/api/nasa';
 
 interface TrackedBody {
 	body: SmallBody;
@@ -24,6 +25,14 @@ interface GalileanMoon {
 	period: number; // days
 	phase: number; // initial angle
 	color: number;
+}
+
+interface TrackedSpacecraft {
+	spacecraft: Spacecraft;
+	mesh: THREE.Mesh;
+	trajectoryLine: THREE.Line;
+	trajectory: TrajectoryPoint[];
+	loaded: boolean;
 }
 
 export class SolarSystemScene {
@@ -43,6 +52,8 @@ export class SolarSystemScene {
 	private atmospheres: Map<string, THREE.Mesh> = new Map();
 	private earthClouds: THREE.Mesh | null = null;
 	private galileanMoons: GalileanMoon[] = [];
+	private spacecraft: Map<string, TrackedSpacecraft> = new Map();
+	private spacecraftVisible = true;
 	private composer: EffectComposer | null = null;
 	private bloomPass: UnrealBloomPass | null = null;
 
@@ -508,6 +519,96 @@ export class SolarSystemScene {
 		}
 	}
 
+	public async addSpacecraft(sc: Spacecraft) {
+		if (this.spacecraft.has(sc.id)) return;
+
+		// Create a small diamond-shaped marker for the spacecraft
+		const geo = new THREE.OctahedronGeometry(0.6, 0);
+		const mat = new THREE.MeshStandardMaterial({
+			color: sc.color,
+			emissive: sc.color,
+			emissiveIntensity: 0.8,
+			metalness: 0.3,
+			roughness: 0.4,
+		});
+		const mesh = new THREE.Mesh(geo, mat);
+		mesh.userData = { type: 'spacecraft', id: sc.id, name: sc.name };
+		this.clickTargets.push(mesh);
+		this.scene.add(mesh);
+
+		// Create a placeholder trajectory line (will be filled when data loads)
+		const trajGeo = new THREE.BufferGeometry();
+		const placeholderPos = new Float32Array(2 * 3);
+		trajGeo.setAttribute('position', new THREE.BufferAttribute(placeholderPos, 3));
+		const trajMat = new THREE.LineBasicMaterial({
+			color: sc.color,
+			transparent: true,
+			opacity: 0.4,
+		});
+		const trajectoryLine = new THREE.Line(trajGeo, trajMat);
+		this.scene.add(trajectoryLine);
+
+		this.createLabel(sc.id, sc.name, '#' + sc.color.toString(16).padStart(6, '0'));
+
+		const entry: TrackedSpacecraft = {
+			spacecraft: sc,
+			mesh,
+			trajectoryLine,
+			trajectory: [],
+			loaded: false,
+		};
+		this.spacecraft.set(sc.id, entry);
+
+		// Fetch trajectory data from Horizons in background
+		const startDate = sc.launchDate;
+		const endDate = '2050-01-01';
+		const trajectory = await getSpacecraftTrajectory(sc.naifId, startDate, endDate, '30d');
+
+		if (trajectory.length > 0) {
+			entry.trajectory = trajectory;
+			entry.loaded = true;
+
+			// Update trajectory line geometry
+			const positions = new Float32Array(trajectory.length * 3);
+			for (let i = 0; i < trajectory.length; i++) {
+				positions[i * 3] = trajectory[i].x;
+				positions[i * 3 + 1] = trajectory[i].y;
+				positions[i * 3 + 2] = trajectory[i].z;
+			}
+			const newGeo = new THREE.BufferGeometry();
+			newGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+			trajectoryLine.geometry.dispose();
+			trajectoryLine.geometry = newGeo;
+		}
+
+		if (!this.spacecraftVisible) {
+			mesh.visible = false;
+			trajectoryLine.visible = false;
+		}
+	}
+
+	public removeSpacecraft(id: string) {
+		const entry = this.spacecraft.get(id);
+		if (!entry) return;
+		this.scene.remove(entry.mesh);
+		this.scene.remove(entry.trajectoryLine);
+		const label = this.labels.get(id);
+		if (label) {
+			label.remove();
+			this.labels.delete(id);
+		}
+		this.spacecraft.delete(id);
+		this.clickTargets = this.clickTargets.filter(t => t !== entry.mesh);
+	}
+
+	public setSpacecraftVisible(visible: boolean) {
+		this.spacecraftVisible = visible;
+		for (const entry of this.spacecraft.values()) {
+			entry.mesh.visible = visible;
+			entry.trajectoryLine.visible = visible;
+		}
+	}
+
 	private createAsteroidBelt() {
 		const count = 4000;
 		const positions = new Float32Array(count * 3);
@@ -668,6 +769,9 @@ export class SolarSystemScene {
 		}
 		for (const [id, tracked] of this.trackedBodies) {
 			update(id, tracked.mesh.position);
+		}
+		for (const [id, entry] of this.spacecraft) {
+			update(id, entry.mesh.position);
 		}
 	}
 
@@ -918,6 +1022,8 @@ export class SolarSystemScene {
 			target = this.planetMeshes.get(id)!;
 		} else if (this.trackedBodies.has(id)) {
 			target = this.trackedBodies.get(id)!.mesh;
+		} else if (this.spacecraft.has(id)) {
+			target = this.spacecraft.get(id)!.mesh;
 		}
 		if (!target) return;
 
@@ -995,6 +1101,10 @@ export class SolarSystemScene {
 				if (tracked.tail) tracked.tail.visible = true;
 			}
 			if (this.moon) this.moon.visible = true;
+			for (const entry of this.spacecraft.values()) {
+				entry.mesh.visible = this.spacecraftVisible;
+				entry.trajectoryLine.visible = this.spacecraftVisible;
+			}
 			return;
 		}
 
@@ -1043,6 +1153,14 @@ export class SolarSystemScene {
 			if (child.userData?.galileanOrbit) {
 				child.visible = showGalilean;
 			}
+		}
+
+		// Spacecraft: show only the focused one, or all if focusing on sun
+		for (const [id, entry] of this.spacecraft) {
+			const isFocused = id === this.isolatedId;
+			const showWithSun = this.isolatedId === 'sun' && this.spacecraftVisible;
+			entry.mesh.visible = isFocused || showWithSun;
+			entry.trajectoryLine.visible = isFocused || showWithSun;
 		}
 
 		// Small bodies: show only those within proximity of the focused object
@@ -1288,6 +1406,61 @@ export class SolarSystemScene {
 				const color = tracked.body.kind === 'comet' ? 0x00ffff : 0xff8844;
 				updateTrail(id, tracked.mesh.position, color);
 			}
+		}
+
+		// Update spacecraft positions by interpolating trajectory data
+		for (const entry of this.spacecraft.values()) {
+			if (!entry.loaded || entry.trajectory.length === 0) continue;
+			const traj = entry.trajectory;
+
+			// Find the two trajectory points that bracket the current JD
+			if (this.currentJD <= traj[0].jd) {
+				// Before launch — clamp to first point
+				entry.mesh.position.set(traj[0].x, traj[0].y, traj[0].z);
+			} else if (this.currentJD >= traj[traj.length - 1].jd) {
+				// Beyond last data point — extrapolate linearly from last two points
+				const last = traj[traj.length - 1];
+				const prev = traj[traj.length - 2];
+				const dt = last.jd - prev.jd;
+				if (dt > 0) {
+					const factor = (this.currentJD - last.jd) / dt;
+					entry.mesh.position.set(
+						last.x + (last.x - prev.x) * factor,
+						last.y + (last.y - prev.y) * factor,
+						last.z + (last.z - prev.z) * factor,
+					);
+				} else {
+					entry.mesh.position.set(last.x, last.y, last.z);
+				}
+			} else {
+				// Binary search for the bracketing points
+				let lo = 0, hi = traj.length - 1;
+				while (hi - lo > 1) {
+					const mid = (lo + hi) >> 1;
+					if (traj[mid].jd <= this.currentJD) lo = mid;
+					else hi = mid;
+				}
+				const p0 = traj[lo], p1 = traj[hi];
+				const t = (this.currentJD - p0.jd) / (p1.jd - p0.jd);
+				entry.mesh.position.set(
+					p0.x + (p1.x - p0.x) * t,
+					p0.y + (p1.y - p0.y) * t,
+					p0.z + (p1.z - p0.z) * t,
+				);
+			}
+
+			// Apply log scale if enabled
+			if (this.logScale) {
+				const r = entry.mesh.position.length();
+				if (r > 0) {
+					const scale = this.scaleDistance(r) / r;
+					entry.mesh.position.multiplyScalar(scale);
+				}
+			}
+
+			// Rotate the diamond marker for visual interest
+			entry.mesh.rotation.y += 0.02 * this.timeSpeed * this.frameDelta * 60;
+			entry.mesh.rotation.x += 0.01 * this.timeSpeed * this.frameDelta * 60;
 		}
 
 		// Rotate sun

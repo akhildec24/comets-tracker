@@ -2,9 +2,9 @@
 	import { onMount } from 'svelte';
 	import { SolarSystemScene } from '$lib/three/scene';
 	import { lookupNotableBodies, queryCloseApproaches, lookupBody } from '$lib/api/nasa';
-	import { NOTABLE_OBJECTS, PLANETS } from '$lib/solarSystem';
+	import { NOTABLE_OBJECTS, PLANETS, INTERSTELLAR_MISSIONS } from '$lib/solarSystem';
 	import { currentJD, jdToDate } from '$lib/orbital';
-	import type { SmallBody, CloseApproach } from '$lib/types';
+	import type { SmallBody, CloseApproach, Spacecraft } from '$lib/types';
 	import InfoPanel from '$lib/components/InfoPanel.svelte';
 	import TimelineControl from '$lib/components/TimelineControl.svelte';
 	import SearchBar from '$lib/components/SearchBar.svelte';
@@ -24,7 +24,7 @@
 	let searchLoading = $state(false);
 	let approachesLoading = $state(false);
 	let bodiesLoading = $state(false);
-	let sidebarTab: 'planets' | 'objects' | 'approaches' = $state('objects');
+	let sidebarTab: 'planets' | 'objects' | 'approaches' | 'missions' = $state('objects');
 	let showHelp = $state(true);
 	let errorMessage = $state('');
 	let cacheStatus = $state('');
@@ -36,6 +36,8 @@
 	let showLabels = $state(true);
 	let showTrails = $state(false);
 	let logScale = $state(false);
+	let showSpacecraft = $state(false);
+	let spacecraftLoaded = $state(false);
 
 	const findBody = (id: string): SmallBody | null => {
 		return trackedBodies.find(b => b.id === id || b.des === id || b.name === id) || null;
@@ -60,6 +62,12 @@
 		selected = { type: name === 'Sun' ? 'sun' : 'planet', id, name };
 		selectedBody = null;
 		sceneInstance?.focusOn(id);
+	};
+
+	const handleSpacecraftSelect = (sc: Spacecraft) => {
+		selected = { type: 'spacecraft', id: sc.id, name: sc.name };
+		selectedBody = null;
+		sceneInstance?.focusOn(sc.id);
 	};
 
 	const handleFocus = (id: string) => {
@@ -247,6 +255,17 @@
 	$effect(() => {
 		sceneInstance?.setLogScale(logScale);
 	});
+	$effect(() => {
+		sceneInstance?.setSpacecraftVisible(showSpacecraft);
+	});
+
+	const loadSpacecraft = async () => {
+		if (spacecraftLoaded) return;
+		spacecraftLoaded = true;
+		for (const sc of INTERSTELLAR_MISSIONS) {
+			sceneInstance?.addSpacecraft(sc);
+		}
+	};
 </script>
 
 <div class="app">
@@ -286,6 +305,17 @@
 			<button class="toggle-btn" class:active={logScale} onclick={() => { logScale = !logScale; }} title="Toggle log-scale distances (spreads out inner planets)">
 				SCALE
 			</button>
+			<button
+				class="toggle-btn"
+				class:active={showSpacecraft}
+				onclick={() => {
+					showSpacecraft = !showSpacecraft;
+					if (showSpacecraft) loadSpacecraft();
+				}}
+				title="Toggle interstellar space missions (Voyager, Pioneer, New Horizons)"
+			>
+				MISSIONS
+			</button>
 			<button class="refresh-btn" onclick={() => refreshData()} title="Refresh from NASA">
 				↻
 			</button>
@@ -317,6 +347,13 @@
 				onclick={() => (sidebarTab = 'approaches')}
 			>
 				APPROACHES
+			</button>
+			<button
+				class="tab-btn"
+				class:active={sidebarTab === 'missions'}
+				onclick={() => (sidebarTab = 'missions')}
+			>
+				MISSIONS
 			</button>
 		</div>
 
@@ -351,6 +388,29 @@
 							⊕ LOAD NOTABLE OBJECTS
 						{/if}
 					</button>
+				</div>
+			{:else if sidebarTab === 'missions'}
+				<div class="planet-list">
+					{#if !spacecraftLoaded}
+						<div class="sidebar-actions" style="padding: 12px;">
+							<button class="action-btn" onclick={loadSpacecraft}>
+								⊕ LOAD SPACE MISSIONS
+							</button>
+						</div>
+					{:else}
+						{#each INTERSTELLAR_MISSIONS as sc}
+							<button class="planet-item" onclick={() => handleSpacecraftSelect(sc)}>
+								<span class="planet-dot" style="background: #{sc.color.toString(16).padStart(6, '0')};"></span>
+								<span class="planet-name">{sc.name}</span>
+								{#if sc.status === 'silent'}
+									<span style="color: #888; font-size: 9px;">SILENT</span>
+								{/if}
+							</button>
+						{/each}
+						<div style="padding: 10px; font-size: 10px; color: #667; line-height: 1.5;">
+							Trajectory data from NASA JPL Horizons. Positions update with the timeline.
+						</div>
+					{/if}
 				</div>
 			{:else}
 				<CloseApproachList

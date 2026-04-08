@@ -32,6 +32,7 @@
 			case 'dormant': return 'DORMANT COMET';
 			case 'planet': return 'PLANET';
 			case 'sun': return 'STAR';
+			case 'spacecraft': return 'SPACECRAFT';
 			default: return kind.toUpperCase();
 		}
 	};
@@ -43,6 +44,7 @@
 			case 'dormant': return '#aa88ff';
 			case 'planet': return '#88ccff';
 			case 'sun': return '#ffaa33';
+			case 'spacecraft': return '#44ff88';
 			default: return '#c0d0e0';
 		}
 	};
@@ -98,7 +100,41 @@
 			<button class="close-btn" onclick={onClose}>✕</button>
 		</div>
 
-		{#if bodyData}
+		{#if selected.type === 'spacecraft'}
+			<div class="panel-body">
+				<div class="data-section">
+					<div class="section-title">MISSION</div>
+					<div class="data-row">
+						<span class="label">Name</span>
+						<span class="value">{selected.name}</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Type</span>
+						<span class="value">Interstellar Probe</span>
+					</div>
+				</div>
+				<div class="data-section">
+					<div class="section-title">TRAJECTORY</div>
+					<div class="data-row">
+						<span class="label">Data Source</span>
+						<span class="value">NASA JPL Horizons</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Status</span>
+						<span class="value" style="color: #44ff88">Active Mission</span>
+					</div>
+				</div>
+				<div class="data-section">
+					<div class="section-title">CONTROLS</div>
+					<div class="data-row" style="flex-direction: column; gap: 6px;">
+						<button class="focus-btn" onclick={() => onFocus(selected.id)}>FOCUS CAMERA</button>
+						<button class="isolate-btn" class:active={isolated} onclick={() => onIsolate(!isolated)}>
+							{isolated ? 'ISOLATED VIEW' : 'ISOLATE VIEW'}
+						</button>
+					</div>
+				</div>
+			</div>
+		{:else if bodyData}
 			<div class="panel-body">
 				<div class="data-section">
 					<div class="section-title">DESIGNATION</div>

@@ -1,4 +1,4 @@
-import type { PlanetData } from '$lib/types';
+import type { PlanetData, Spacecraft } from '$lib/types';
 
 // Real orbital elements (J2000 epoch) with display scaling
 // Display: 1 AU = 50 scene units, planet sizes are exaggerated for visibility
@@ -296,4 +296,54 @@ export const NOTABLE_OBJECTS = [
 	{ des: '153814', name: '2001 WN5', kind: 'asteroid' as const },
 	{ des: '161989', name: 'Cacus', kind: 'asteroid' as const },
 	{ des: '68950', name: '2002 QF15', kind: 'asteroid' as const },
+];
+
+// Interstellar and deep space missions
+// NAIF IDs are negative for spacecraft in JPL Horizons
+export const INTERSTELLAR_MISSIONS: Spacecraft[] = [
+	{
+		id: 'voyager1',
+		name: 'Voyager 1',
+		naifId: -31,
+		launchDate: '1977-09-05',
+		color: 0x44aaff,
+		description: 'Farthest human-made object, entered interstellar space in 2012',
+		status: 'active',
+	},
+	{
+		id: 'voyager2',
+		name: 'Voyager 2',
+		naifId: -32,
+		launchDate: '1977-08-20',
+		color: 0x44ffaa,
+		description: 'Only spacecraft to visit all four giant planets, entered interstellar space in 2018',
+		status: 'active',
+	},
+	{
+		id: 'pioneer10',
+		name: 'Pioneer 10',
+		naifId: -23,
+		launchDate: '1972-03-03',
+		color: 0xffaa44,
+		description: 'First spacecraft to cross the asteroid belt and visit Jupiter, last signal 2003',
+		status: 'silent',
+	},
+	{
+		id: 'pioneer11',
+		name: 'Pioneer 11',
+		naifId: -24,
+		launchDate: '1973-04-06',
+		color: 0xff8844,
+		description: 'First to visit Saturn and fly through the rings, last signal 1995',
+		status: 'silent',
+	},
+	{
+		id: 'newhorizons',
+		name: 'New Horizons',
+		naifId: -98,
+		launchDate: '2006-01-19',
+		color: 0xaa44ff,
+		description: 'First reconnaissance of Pluto and the Kuiper Belt (Arrokoth flyby 2019)',
+		status: 'active',
+	},
 ];
