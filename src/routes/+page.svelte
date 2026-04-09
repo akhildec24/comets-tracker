@@ -38,6 +38,7 @@
 	let logScale = $state(false);
 	let showSpacecraft = $state(false);
 	let spacecraftLoaded = $state(false);
+	let settingsOpen = $state(false);
 
 	const findBody = (id: string): SmallBody | null => {
 		return trackedBodies.find(b => b.id === id || b.des === id || b.name === id) || null;
@@ -223,6 +224,15 @@
 		sceneInstance.onSelect = handleSelect;
 		sceneInstance.onTimeUpdate = (newJD: number) => { jd = newJD; };
 
+		// Close settings dropdown on outside click
+		const handleClickOutside = (e: MouseEvent) => {
+			const target = e.target as HTMLElement;
+			if (!target.closest('.gear-menu')) {
+				settingsOpen = false;
+			}
+		};
+		window.addEventListener('click', handleClickOutside);
+
 		// Auto-load from cache on startup
 		loadNotableObjects();
 		loadCloseApproaches();
@@ -231,6 +241,7 @@
 		refreshTimer = setInterval(() => refreshData(), 10 * 60 * 1000);
 
 		return () => {
+			window.removeEventListener('click', handleClickOutside);
 			if (refreshTimer) clearInterval(refreshTimer);
 			sceneInstance?.dispose();
 		};
@@ -296,26 +307,45 @@
 				<span class="status-label">TRACKED</span>
 				<span class="status-value">{trackedBodies.length}</span>
 			</div>
-			<button class="toggle-btn" class:active={showLabels} onclick={() => { showLabels = !showLabels; }} title="Toggle labels">
-				LABELS
-			</button>
-			<button class="toggle-btn" class:active={showTrails} onclick={() => { showTrails = !showTrails; }} title="Toggle orbit trails">
-				TRAILS
-			</button>
-			<button class="toggle-btn" class:active={logScale} onclick={() => { logScale = !logScale; }} title="Toggle log-scale distances (spreads out inner planets)">
-				SCALE
-			</button>
-			<button
-				class="toggle-btn"
-				class:active={showSpacecraft}
-				onclick={() => {
-					showSpacecraft = !showSpacecraft;
-					if (showSpacecraft) loadSpacecraft();
-				}}
-				title="Toggle interstellar space missions (Voyager, Pioneer, New Horizons)"
-			>
-				MISSIONS
-			</button>
+			<div class="gear-menu">
+				<button
+					class="gear-btn"
+					class:active={settingsOpen}
+					onclick={() => (settingsOpen = !settingsOpen)}
+					title="Display settings"
+				>
+					⚙
+				</button>
+				{#if settingsOpen}
+					<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+					<div class="gear-dropdown" onclick={(e) => e.stopPropagation()}>
+						<label class="dropdown-item">
+							<span class="dropdown-label">LABELS</span>
+							<input type="checkbox" bind:checked={showLabels} />
+							<span class="switch-slider"></span>
+						</label>
+						<label class="dropdown-item">
+							<span class="dropdown-label">TRAILS</span>
+							<input type="checkbox" bind:checked={showTrails} />
+							<span class="switch-slider"></span>
+						</label>
+						<label class="dropdown-item">
+							<span class="dropdown-label">SCALE</span>
+							<input type="checkbox" bind:checked={logScale} />
+							<span class="switch-slider"></span>
+						</label>
+						<label class="dropdown-item">
+							<span class="dropdown-label">MISSIONS</span>
+							<input
+								type="checkbox"
+								bind:checked={showSpacecraft}
+								onchange={() => { if (showSpacecraft) loadSpacecraft(); }}
+							/>
+							<span class="switch-slider"></span>
+						</label>
+					</div>
+				{/if}
+			</div>
 			<button class="refresh-btn" onclick={() => refreshData()} title="Refresh from NASA">
 				↻
 			</button>
@@ -579,31 +609,113 @@
 		border-color: #00ccff;
 	}
 
-	.toggle-btn {
+	/* Gear menu */
+	.gear-menu {
+		position: relative;
+	}
+
+	.gear-btn {
 		background: rgba(10, 20, 40, 0.6);
 		border: 1px solid rgba(60, 80, 120, 0.3);
 		color: #6080a0;
-		font-family: 'Orbitron', sans-serif;
-		font-size: 9px;
-		font-weight: 700;
-		letter-spacing: 1px;
-		padding: 0 10px;
+		font-size: 18px;
+		width: 32px;
 		height: 32px;
 		border-radius: 4px;
 		cursor: pointer;
 		transition: all 0.2s;
-		white-space: nowrap;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
-	.toggle-btn.active {
+	.gear-btn:hover {
+		border-color: rgba(0, 150, 200, 0.4);
+		color: #80a0c0;
+	}
+
+	.gear-btn.active {
 		background: rgba(0, 150, 200, 0.2);
 		border-color: rgba(0, 150, 200, 0.4);
 		color: #00ccff;
+		transform: rotate(60deg);
 	}
 
-	.toggle-btn:hover {
-		border-color: rgba(0, 150, 200, 0.4);
+	.gear-dropdown {
+		position: absolute;
+		top: 38px;
+		right: 0;
+		background: rgba(8, 14, 28, 0.95);
+		border: 1px solid rgba(60, 80, 120, 0.4);
+		border-radius: 6px;
+		padding: 6px;
+		min-width: 160px;
+		z-index: 1000;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(10px);
+	}
+
+	.dropdown-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 8px 10px;
+		cursor: pointer;
+		border-radius: 4px;
+		transition: background 0.15s;
+	}
+
+	.dropdown-item:hover {
+		background: rgba(0, 100, 150, 0.15);
+	}
+
+	.dropdown-label {
+		font-family: 'Orbitron', sans-serif;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 1px;
 		color: #80a0c0;
+	}
+
+	.dropdown-item input[type="checkbox"] {
+		opacity: 0;
+		width: 0;
+		height: 0;
+		position: absolute;
+	}
+
+	.switch-slider {
+		width: 32px;
+		height: 16px;
+		border-radius: 8px;
+		background: rgba(40, 50, 70, 0.8);
+		border: 1px solid rgba(60, 80, 120, 0.3);
+		position: relative;
+		transition: all 0.2s;
+		flex-shrink: 0;
+	}
+
+	.switch-slider::after {
+		content: '';
+		position: absolute;
+		top: 1px;
+		left: 1px;
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		background: #506070;
+		transition: all 0.2s;
+	}
+
+	.dropdown-item input:checked ~ .switch-slider {
+		background: rgba(0, 150, 200, 0.3);
+		border-color: rgba(0, 150, 200, 0.5);
+	}
+
+	.dropdown-item input:checked ~ .switch-slider::after {
+		left: 17px;
+		background: #00ccff;
+		box-shadow: 0 0 6px rgba(0, 200, 255, 0.5);
 	}
 
 	.cache-status {
