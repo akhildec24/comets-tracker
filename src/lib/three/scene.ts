@@ -780,12 +780,13 @@ export class SolarSystemScene {
 
 		const isComet = body.kind === 'comet';
 		// Size based on absolute magnitude if available (brighter = bigger)
-		const baseSize = isComet ? 0.4 : 0.3;
+		// Comets are tiny vs planets — keep well below Mercury (0.8 scene units)
+		const baseSize = isComet ? 0.15 : 0.25;
 		const hMag = body.h;
 		let size = baseSize;
 		if (hMag !== undefined) {
-			// H=3 -> large, H=15 -> small. Scale: size = baseSize * (1 + (12-hMag)/20)
-			size = baseSize * Math.max(0.3, Math.min(2.5, 1 + (12 - hMag) / 20));
+			// H=3 -> large comet, H=15 -> small. Range: 0.5x to 1.8x base
+			size = baseSize * Math.max(0.5, Math.min(1.8, 1 + (12 - hMag) / 24));
 		}
 		const color = isComet ? 0x00ffff : 0xff8844;
 
@@ -826,7 +827,7 @@ export class SolarSystemScene {
 				const spread = 0.3 + t * 0.8;
 				ionPositions[i * 3] = (Math.random() - 0.5) * spread;
 				ionPositions[i * 3 + 1] = (Math.random() - 0.5) * spread;
-				ionPositions[i * 3 + 2] = t * 30; // long straight tail along +Z
+				ionPositions[i * 3 + 2] = t * 15; // long straight tail along +Z
 
 				const fade = 1 - t;
 				ionColors[i * 3] = 0.2 * fade;
@@ -859,7 +860,7 @@ export class SolarSystemScene {
 				const curve = t * t * 4;
 				dustPositions[i * 3] = (Math.random() - 0.5) * spread + curve;
 				dustPositions[i * 3 + 1] = (Math.random() - 0.5) * spread;
-				dustPositions[i * 3 + 2] = t * 18; // shorter than ion tail
+				dustPositions[i * 3 + 2] = t * 10; // shorter than ion tail
 
 				const fade = 1 - t;
 				dustColors[i * 3] = 0.9 * fade;
@@ -1342,7 +1343,7 @@ export class SolarSystemScene {
 				const distFromSun = tracked.mesh.position.length();
 				// Tails are more prominent when closer to sun (inverse scaling)
 				// At 1 AU -> full tail, at 5 AU -> 20% tail, beyond 10 AU -> minimal
-				const tailScale = Math.max(0.1, Math.min(1.5, 1.5 / (distFromSun / 50)));
+				const tailScale = Math.max(0.1, Math.min(1.0, 1.0 / (distFromSun / 50)));
 
 				const dir = tracked.mesh.position.clone().normalize();
 
