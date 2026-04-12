@@ -824,10 +824,10 @@ export class SolarSystemScene {
 			const ionColors = new Float32Array(ionCount * 3);
 			for (let i = 0; i < ionCount; i++) {
 				const t = i / ionCount;
-				const spread = 0.3 + t * 0.8;
+				const spread = 0.1 + t * 0.3;
 				ionPositions[i * 3] = (Math.random() - 0.5) * spread;
 				ionPositions[i * 3 + 1] = (Math.random() - 0.5) * spread;
-				ionPositions[i * 3 + 2] = t * 15; // long straight tail along +Z
+				ionPositions[i * 3 + 2] = t * 12; // long straight tail along +Z
 
 				const fade = 1 - t;
 				ionColors[i * 3] = 0.2 * fade;
@@ -838,7 +838,7 @@ export class SolarSystemScene {
 			ionGeo.setAttribute('position', new THREE.BufferAttribute(ionPositions, 3));
 			ionGeo.setAttribute('color', new THREE.BufferAttribute(ionColors, 3));
 			const ionMat = new THREE.PointsMaterial({
-				size: 1.2,
+				size: 0.4,
 				vertexColors: true,
 				transparent: true,
 				opacity: 0.7,
@@ -855,12 +855,12 @@ export class SolarSystemScene {
 			const dustColors = new Float32Array(dustCount * 3);
 			for (let i = 0; i < dustCount; i++) {
 				const t = i / dustCount;
-				const spread = 1.0 + t * 3.5;
+				const spread = 0.3 + t * 1.5;
 				// Dust tail curves slightly (offset in X based on t)
-				const curve = t * t * 4;
+				const curve = t * t * 1.5;
 				dustPositions[i * 3] = (Math.random() - 0.5) * spread + curve;
 				dustPositions[i * 3 + 1] = (Math.random() - 0.5) * spread;
-				dustPositions[i * 3 + 2] = t * 10; // shorter than ion tail
+				dustPositions[i * 3 + 2] = t * 8; // shorter than ion tail
 
 				const fade = 1 - t;
 				dustColors[i * 3] = 0.9 * fade;
@@ -871,7 +871,7 @@ export class SolarSystemScene {
 			dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
 			dustGeo.setAttribute('color', new THREE.BufferAttribute(dustColors, 3));
 			const dustMat = new THREE.PointsMaterial({
-				size: 1.8,
+				size: 0.6,
 				vertexColors: true,
 				transparent: true,
 				opacity: 0.5,
