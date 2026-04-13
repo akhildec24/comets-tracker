@@ -40,6 +40,10 @@
 	let spacecraftLoaded = $state(false);
 	let settingsOpen = $state(false);
 
+	const cometCount = $derived(trackedBodies.filter(b => b.kind === 'comet').length);
+	const asteroidCount = $derived(trackedBodies.filter(b => b.kind === 'asteroid').length);
+	const dormantCount = $derived(trackedBodies.filter(b => b.kind === 'dormant').length);
+
 	const findBody = (id: string): SmallBody | null => {
 		return trackedBodies.find(b => b.id === id || b.des === id || b.name === id) || null;
 	};
@@ -314,11 +318,12 @@
 					onclick={() => (settingsOpen = !settingsOpen)}
 					title="Display settings"
 				>
-					⚙
+					<span class="gear-icon">⚙</span>
 				</button>
 				{#if settingsOpen}
 					<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 					<div class="gear-dropdown" onclick={(e) => e.stopPropagation()}>
+						<div class="dropdown-section">DISPLAY</div>
 						<label class="dropdown-item">
 							<span class="dropdown-label">LABELS</span>
 							<input type="checkbox" bind:checked={showLabels} />
@@ -343,6 +348,25 @@
 							/>
 							<span class="switch-slider"></span>
 						</label>
+						<div class="dropdown-divider"></div>
+						<div class="dropdown-section">OBJECTS</div>
+						<label class="dropdown-item">
+							<span class="dropdown-label">☄ COMETS ({cometCount})</span>
+							<input type="checkbox" bind:checked={showComets} />
+							<span class="switch-slider"></span>
+						</label>
+						<label class="dropdown-item">
+							<span class="dropdown-label">● ASTEROIDS ({asteroidCount})</span>
+							<input type="checkbox" bind:checked={showAsteroids} />
+							<span class="switch-slider"></span>
+						</label>
+						{#if dormantCount > 0}
+							<label class="dropdown-item">
+								<span class="dropdown-label">○ DORMANT ({dormantCount})</span>
+								<input type="checkbox" bind:checked={showDormant} />
+								<span class="switch-slider"></span>
+							</label>
+						{/if}
 					</div>
 				{/if}
 			</div>
@@ -638,6 +662,10 @@
 		background: rgba(0, 150, 200, 0.2);
 		border-color: rgba(0, 150, 200, 0.4);
 		color: #00ccff;
+	}
+
+	.gear-btn.active .gear-icon {
+		display: inline-block;
 		transform: rotate(60deg);
 	}
 
@@ -649,10 +677,25 @@
 		border: 1px solid rgba(60, 80, 120, 0.4);
 		border-radius: 6px;
 		padding: 6px;
-		min-width: 160px;
+		min-width: 180px;
 		z-index: 1000;
 		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 		backdrop-filter: blur(10px);
+	}
+
+	.dropdown-section {
+		font-family: 'Orbitron', sans-serif;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 1.5px;
+		color: #4a6080;
+		padding: 6px 10px 2px;
+	}
+
+	.dropdown-divider {
+		height: 1px;
+		background: rgba(60, 80, 120, 0.25);
+		margin: 4px 6px;
 	}
 
 	.dropdown-item {

@@ -49,45 +49,12 @@
 			return true;
 		});
 	});
-
-	const cometCount = $derived(bodies.filter(b => b.kind === 'comet').length);
-	const asteroidCount = $derived(bodies.filter(b => b.kind === 'asteroid').length);
-	const dormantCount = $derived(bodies.filter(b => b.kind === 'dormant').length);
 </script>
 
 <div class="object-list">
 	<div class="list-header">
 		<span class="header-title">TRACKED OBJECTS</span>
 		<span class="count-badge">{filteredBodies.length}/{bodies.length}</span>
-	</div>
-
-	<div class="filter-bar">
-		<button
-			class="filter-btn"
-			class:active={showComets}
-			onclick={() => { showComets = !showComets; }}
-		>
-			<span class="filter-icon" style="color: {showComets ? '#00ffff' : '#4a6080'}">{kindIcon('comet')}</span>
-			<span class="filter-label" class:dimmed={!showComets}>Comets ({cometCount})</span>
-		</button>
-		<button
-			class="filter-btn"
-			class:active={showAsteroids}
-			onclick={() => { showAsteroids = !showAsteroids; }}
-		>
-			<span class="filter-icon" style="color: {showAsteroids ? '#ff8844' : '#4a6080'}">{kindIcon('asteroid')}</span>
-			<span class="filter-label" class:dimmed={!showAsteroids}>Asteroids ({asteroidCount})</span>
-		</button>
-		{#if dormantCount > 0}
-			<button
-				class="filter-btn"
-				class:active={showDormant}
-				onclick={() => { showDormant = !showDormant; }}
-			>
-				<span class="filter-icon" style="color: {showDormant ? '#aa88ff' : '#4a6080'}">{kindIcon('dormant')}</span>
-				<span class="filter-label" class:dimmed={!showDormant}>Dormant ({dormantCount})</span>
-			</button>
-		{/if}
 	</div>
 
 	<div class="search-filter">
@@ -148,55 +115,6 @@
 		padding: 1px 6px;
 		border-radius: 8px;
 		border: 1px solid rgba(0, 150, 200, 0.3);
-	}
-
-	.filter-bar {
-		display: flex;
-		gap: 4px;
-		padding: 6px 8px;
-		border-bottom: 1px solid rgba(0, 100, 150, 0.15);
-		flex-wrap: wrap;
-	}
-
-	.filter-btn {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		padding: 4px 8px;
-		background: rgba(10, 20, 40, 0.6);
-		border: 1px solid rgba(60, 80, 120, 0.3);
-		font-family: 'JetBrains Mono', monospace;
-		font-size: 9px;
-		border-radius: 4px;
-		cursor: pointer;
-		transition: all 0.2s;
-		white-space: nowrap;
-	}
-
-	.filter-btn.active {
-		background: rgba(0, 100, 150, 0.2);
-		border-color: rgba(0, 150, 200, 0.4);
-	}
-
-	.filter-btn:not(.active) {
-		opacity: 0.5;
-	}
-
-	.filter-btn:hover {
-		border-color: rgba(0, 150, 200, 0.4);
-	}
-
-	.filter-icon {
-		font-size: 12px;
-	}
-
-	.filter-label {
-		color: #c0e0ff;
-	}
-
-	.filter-label.dimmed {
-		color: #4a6080;
-		text-decoration: line-through;
 	}
 
 	.search-filter {
