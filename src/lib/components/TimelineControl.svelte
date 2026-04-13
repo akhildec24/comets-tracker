@@ -93,10 +93,10 @@
 		<div class="preset-section">
 			<div class="preset-label">JUMP</div>
 			<div class="preset-buttons">
-				<button class="preset-btn" onclick={() => jumpForward(7)} title="1 week forward">1W</button>
-				<button class="preset-btn" onclick={() => jumpForward(30)} title="1 month forward">1M</button>
-				<button class="preset-btn" onclick={() => jumpForward(365)} title="1 year forward">1Y</button>
-				<button class="preset-btn" onclick={jumpToNextPerihelion} title="Next perihelion">PERI</button>
+				<button class="preset-btn" onclick={() => jumpForward(7)}>1W</button>
+				<button class="preset-btn" onclick={() => jumpForward(30)}>1M</button>
+				<button class="preset-btn" onclick={() => jumpForward(365)}>1Y</button>
+				<button class="preset-btn" onclick={jumpToNextPerihelion} title="Jump to next perihelion of tracked comets">PERI</button>
 			</div>
 		</div>
 
