@@ -30,6 +30,7 @@
 	let cacheStatus = $state('');
 	let refreshTimer: ReturnType<typeof setInterval> | null = null;
 	let isolated = $state(false);
+	let cameraFollowing = $state(false);
 	let showComets = $state(true);
 	let showAsteroids = $state(true);
 	let showDormant = $state(true);
@@ -67,21 +68,31 @@
 		selected = { type: name === 'Sun' ? 'sun' : 'planet', id, name };
 		selectedBody = null;
 		sceneInstance?.focusOn(id);
+		cameraFollowing = true;
 	};
 
 	const handleSpacecraftSelect = (sc: Spacecraft) => {
 		selected = { type: 'spacecraft', id: sc.id, name: sc.name };
 		selectedBody = null;
 		sceneInstance?.focusOn(sc.id);
+		cameraFollowing = true;
 	};
 
 	const handleFocus = (id: string) => {
 		sceneInstance?.focusOn(id);
+		cameraFollowing = true;
 	};
 
 	const handleIsolate = (enabled: boolean) => {
 		isolated = enabled;
 		sceneInstance?.setIsolatedView(enabled, selected?.id);
+	};
+
+	const resetView = () => {
+		sceneInstance?.clearFollow();
+		sceneInstance?.setIsolatedView(false);
+		isolated = false;
+		cameraFollowing = false;
 	};
 
 	const handleTimeChange = (newJD: number) => {
@@ -324,22 +335,22 @@
 					<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 					<div class="gear-dropdown" onclick={(e) => e.stopPropagation()}>
 						<div class="dropdown-section">DISPLAY</div>
-						<label class="dropdown-item">
+						<label class="dropdown-item" title="Show/hide name labels for all objects">
 							<span class="dropdown-label">LABELS</span>
 							<input type="checkbox" bind:checked={showLabels} />
 							<span class="switch-slider"></span>
 						</label>
-						<label class="dropdown-item">
+						<label class="dropdown-item" title="Show/hide orbit trails behind moving objects">
 							<span class="dropdown-label">TRAILS</span>
 							<input type="checkbox" bind:checked={showTrails} />
 							<span class="switch-slider"></span>
 						</label>
-						<label class="dropdown-item">
+						<label class="dropdown-item" title="Log-scale distances: spreads out inner planets for visibility">
 							<span class="dropdown-label">SCALE</span>
 							<input type="checkbox" bind:checked={logScale} />
 							<span class="switch-slider"></span>
 						</label>
-						<label class="dropdown-item">
+						<label class="dropdown-item" title="Load and show interstellar space missions (Voyager, Pioneer, New Horizons)">
 							<span class="dropdown-label">MISSIONS</span>
 							<input
 								type="checkbox"
@@ -350,18 +361,18 @@
 						</label>
 						<div class="dropdown-divider"></div>
 						<div class="dropdown-section">OBJECTS</div>
-						<label class="dropdown-item">
+						<label class="dropdown-item" title="Show/hide tracked comets">
 							<span class="dropdown-label">☄ COMETS ({cometCount})</span>
 							<input type="checkbox" bind:checked={showComets} />
 							<span class="switch-slider"></span>
 						</label>
-						<label class="dropdown-item">
+						<label class="dropdown-item" title="Show/hide tracked asteroids">
 							<span class="dropdown-label">● ASTEROIDS ({asteroidCount})</span>
 							<input type="checkbox" bind:checked={showAsteroids} />
 							<span class="switch-slider"></span>
 						</label>
 						{#if dormantCount > 0}
-							<label class="dropdown-item">
+							<label class="dropdown-item" title="Show/hide dormant comets">
 								<span class="dropdown-label">○ DORMANT ({dormantCount})</span>
 								<input type="checkbox" bind:checked={showDormant} />
 								<span class="switch-slider"></span>
@@ -489,10 +500,16 @@
 		{selected}
 		bodyData={selectedBody}
 		{isolated}
-		onClose={() => { selected = null; selectedBody = null; }}
+		onClose={() => { selected = null; selectedBody = null; if (isolated) { isolated = false; sceneInstance?.setIsolatedView(false); } cameraFollowing = false; }}
 		onFocus={handleFocus}
 		onIsolate={handleIsolate}
 	/>
+
+	{#if cameraFollowing && !selected}
+		<button class="reset-view-btn" onclick={resetView} title="Exit follow mode and reset view">
+			⟲ RESET VIEW
+		</button>
+	{/if}
 
 	{#if showHelp}
 		<div class="help-overlay">
@@ -909,6 +926,31 @@
 	.action-btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	.reset-view-btn {
+		position: absolute;
+		top: 60px;
+		right: 16px;
+		background: rgba(0, 100, 150, 0.3);
+		border: 1px solid rgba(0, 150, 200, 0.5);
+		color: #00ccff;
+		font-family: 'Orbitron', sans-serif;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 1px;
+		padding: 8px 14px;
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.2s;
+		z-index: 100;
+		backdrop-filter: blur(8px);
+	}
+
+	.reset-view-btn:hover {
+		background: rgba(0, 150, 200, 0.4);
+		border-color: #00ccff;
+		box-shadow: 0 0 12px rgba(0, 200, 255, 0.3);
 	}
 
 	.help-overlay {

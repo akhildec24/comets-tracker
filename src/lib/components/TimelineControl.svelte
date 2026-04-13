@@ -64,7 +64,7 @@
 
 <div class="timeline-container">
 	<div class="timeline-bar">
-		<button class="play-btn" onclick={onPauseToggle}>
+		<button class="play-btn" onclick={onPauseToggle} title="Play / pause time">
 			{#if paused}
 				{'\u25B6'}
 			{:else}
@@ -93,9 +93,9 @@
 		<div class="preset-section">
 			<div class="preset-label">JUMP</div>
 			<div class="preset-buttons">
-				<button class="preset-btn" onclick={() => jumpForward(7)}>1W</button>
-				<button class="preset-btn" onclick={() => jumpForward(30)}>1M</button>
-				<button class="preset-btn" onclick={() => jumpForward(365)}>1Y</button>
+				<button class="preset-btn" onclick={() => jumpForward(7)} title="Jump 1 week forward">1W</button>
+				<button class="preset-btn" onclick={() => jumpForward(30)} title="Jump 1 month forward">1M</button>
+				<button class="preset-btn" onclick={() => jumpForward(365)} title="Jump 1 year forward">1Y</button>
 				<button class="preset-btn" onclick={jumpToNextPerihelion} title="Jump to next perihelion of tracked comets">PERI</button>
 			</div>
 		</div>
@@ -108,14 +108,14 @@
 						class="speed-btn"
 						class:active={speed === sp}
 						onclick={() => onSpeedChange(sp)}
-					>
+						title="Time speed: {speedLabels[i]}x">
 						{speedLabels[i]}
 					</button>
 				{/each}
 			</div>
 		</div>
 
-		<button class="reset-btn" onclick={resetToNow}>
+		<button class="reset-btn" onclick={resetToNow} title="Reset to current time">
 			NOW
 		</button>
 	</div>

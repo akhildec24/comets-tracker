@@ -77,7 +77,7 @@
 						<div class="item-des">{body.des}</div>
 					</div>
 				</button>
-				<button class="remove-btn" onclick={() => onRemove(body.id)}>
+				<button class="remove-btn" onclick={() => onRemove(body.id)} title="Remove from tracking">
 					{'\u2715'}
 				</button>
 			</div>

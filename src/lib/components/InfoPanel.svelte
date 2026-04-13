@@ -97,7 +97,7 @@
 				</span>
 				<span class="object-name">{selected.name}</span>
 			</div>
-			<button class="close-btn" onclick={onClose}>✕</button>
+			<button class="close-btn" onclick={onClose} title="Close info panel">✕</button>
 		</div>
 
 		{#if selected.type === 'spacecraft'}
@@ -127,8 +127,8 @@
 				<div class="data-section">
 					<div class="section-title">CONTROLS</div>
 					<div class="data-row" style="flex-direction: column; gap: 6px;">
-						<button class="focus-btn" onclick={() => onFocus(selected.id)}>FOCUS CAMERA</button>
-						<button class="isolate-btn" class:active={isolated} onclick={() => onIsolate(!isolated)}>
+						<button class="focus-btn" onclick={() => onFocus(selected.id)} title="Move camera to this object">FOCUS CAMERA</button>
+						<button class="isolate-btn" class:active={isolated} onclick={() => onIsolate(!isolated)} title="Hide everything except this object">
 							{isolated ? 'ISOLATED VIEW' : 'ISOLATE VIEW'}
 						</button>
 					</div>
@@ -244,10 +244,10 @@
 				</div>
 			{/if}
 
-				<button class="focus-btn" onclick={() => onFocus(selected.id)}>
+				<button class="focus-btn" onclick={() => onFocus(selected.id)} title="Move camera to this object">
 					⊙ FOCUS CAMERA
 				</button>
-				<button class="isolate-btn" class:active={isolated} onclick={() => onIsolate(!isolated)}>
+				<button class="isolate-btn" class:active={isolated} onclick={() => onIsolate(!isolated)} title="Hide everything except this object">
 					{isolated ? '◉ ISOLATED VIEW' : '○ ISOLATE VIEW'}
 				</button>
 			</div>
@@ -257,10 +257,10 @@
 					<div class="section-title">{selected.type === 'sun' ? 'CENTRAL STAR' : 'PLANETARY BODY'}</div>
 					<p class="placeholder">Click to focus camera on {selected.name}.</p>
 				</div>
-				<button class="focus-btn" onclick={() => onFocus(selected.id)}>
+				<button class="focus-btn" onclick={() => onFocus(selected.id)} title="Move camera to this object">
 					⊙ FOCUS CAMERA
 				</button>
-				<button class="isolate-btn" class:active={isolated} onclick={() => onIsolate(!isolated)}>
+				<button class="isolate-btn" class:active={isolated} onclick={() => onIsolate(!isolated)} title="Hide everything except this object">
 					{isolated ? '◉ ISOLATED VIEW' : '○ ISOLATE VIEW'}
 				</button>
 			</div>
