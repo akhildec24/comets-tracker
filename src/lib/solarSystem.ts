@@ -9,7 +9,7 @@ export const SUN_DATA = {
 	name: 'Sun',
 	radius: 8, // scene units
 	realRadius: 696340, // km
-	color: 0xffaa33,
+	color: 0xfff5dd,
 };
 
 export const PLANETS: PlanetData[] = [

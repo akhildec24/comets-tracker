@@ -43,7 +43,7 @@
 			case 'asteroid': return '#ff8844';
 			case 'dormant': return '#aa88ff';
 			case 'planet': return '#88ccff';
-			case 'sun': return '#ffaa33';
+			case 'sun': return '#fff5dd';
 			case 'spacecraft': return '#44ff88';
 			default: return '#c0d0e0';
 		}

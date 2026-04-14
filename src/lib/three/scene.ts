@@ -129,7 +129,7 @@ export class SolarSystemScene {
 		const ambient = new THREE.AmbientLight(0x223344, 0.15);
 		this.scene.add(ambient);
 
-		const sunLight = new THREE.PointLight(0xfff5e0, 3, 8000, 0.3);
+		const sunLight = new THREE.PointLight(0xfff8f0, 3, 8000, 0.3);
 		sunLight.position.set(0, 0, 0);
 		this.scene.add(sunLight);
 
@@ -205,7 +205,7 @@ export class SolarSystemScene {
 		const glowTexture = createSunGlowTexture();
 		const mat = new THREE.MeshBasicMaterial({
 			map: glowTexture,
-			color: 0xff8833,
+			color: 0xffdd88,
 			transparent: true,
 			opacity: 0.6,
 			side: THREE.BackSide,

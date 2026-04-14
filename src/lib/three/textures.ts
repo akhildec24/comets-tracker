@@ -329,6 +329,7 @@ export function createPlanetTexture(type: PlanetTextureType): THREE.CanvasTextur
 				}
 				case 'sun': {
 					// Granulated sun surface with brighter spots
+					// Real sun color: white-yellow (~5800K blackbody)
 					const n = fractalNoise(u * 40, v * 40, 20, 6);
 					const n2 = fractalNoise(u * 100, v * 100, 21, 4);
 					const granule = fractalNoise(u * 200, v * 200, 22, 3);
@@ -336,8 +337,8 @@ export function createPlanetTexture(type: PlanetTextureType): THREE.CanvasTextur
 
 					const c = 220 + n * 35 + n2 * 15 + granule * 8;
 					r = 255;
-					g = Math.min(255, 200 + c * 0.15 + bright * 30);
-					b = Math.min(255, 80 + granule * 40 + bright * 20);
+					g = Math.min(255, 245 + c * 0.04 + bright * 10);
+					b = Math.min(255, 220 + granule * 20 + bright * 15);
 					break;
 				}
 			}
@@ -368,11 +369,11 @@ export function createSunGlowTexture(): THREE.CanvasTexture {
 	const ctx = canvas.getContext('2d')!;
 
 	const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-	gradient.addColorStop(0, 'rgba(255, 220, 100, 0.9)');
-	gradient.addColorStop(0.15, 'rgba(255, 180, 60, 0.5)');
-	gradient.addColorStop(0.35, 'rgba(255, 120, 40, 0.2)');
-	gradient.addColorStop(0.7, 'rgba(255, 80, 20, 0.05)');
-	gradient.addColorStop(1, 'rgba(255, 60, 10, 0)');
+	gradient.addColorStop(0, 'rgba(255, 255, 230, 0.9)');
+	gradient.addColorStop(0.15, 'rgba(255, 245, 200, 0.5)');
+	gradient.addColorStop(0.35, 'rgba(255, 230, 150, 0.2)');
+	gradient.addColorStop(0.7, 'rgba(255, 210, 100, 0.05)');
+	gradient.addColorStop(1, 'rgba(255, 200, 80, 0)');
 
 	ctx.fillStyle = gradient;
 	ctx.fillRect(0, 0, 512, 512);

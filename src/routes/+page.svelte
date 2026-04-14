@@ -426,7 +426,7 @@
 			{#if sidebarTab === 'planets'}
 				<div class="planet-list">
 					<button class="planet-item" onclick={() => handlePlanetSelect('Sun')}>
-						<span class="planet-dot" style="background: #ffaa33;"></span>
+						<span class="planet-dot" style="background: #fff5dd;"></span>
 						<span class="planet-name">Sun</span>
 					</button>
 					{#each PLANETS as planet}
