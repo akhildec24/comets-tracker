@@ -4,7 +4,7 @@
 	import { lookupNotableBodies, queryCloseApproaches, lookupBody } from '$lib/api/nasa';
 	import { NOTABLE_OBJECTS, PLANETS, INTERSTELLAR_MISSIONS } from '$lib/solarSystem';
 	import { currentJD, jdToDate } from '$lib/orbital';
-	import type { SmallBody, CloseApproach, Spacecraft } from '$lib/types';
+	import type { SmallBody, CloseApproach, Spacecraft, PlanetData } from '$lib/types';
 	import InfoPanel from '$lib/components/InfoPanel.svelte';
 	import TimelineControl from '$lib/components/TimelineControl.svelte';
 	import SearchBar from '$lib/components/SearchBar.svelte';
@@ -18,6 +18,7 @@
 	let approaches: CloseApproach[] = $state([]);
 	let selected: { type: string; id: string; name: string } | null = $state(null);
 	let selectedBody: SmallBody | null = $state(null);
+	let selectedPlanet: PlanetData | null = $state(null);
 	let jd = $state(currentJD());
 	let paused = $state(false);
 	let speed = $state(1);
@@ -51,6 +52,7 @@
 
 	const handleSelect = (data: { type: string; id: string; name: string } | null) => {
 		selected = data;
+		selectedPlanet = null;
 		if (data) {
 			selectedBody = findBody(data.id);
 			if (!selectedBody && (data.type === 'comet' || data.type === 'asteroid' || data.type === 'dormant')) {
@@ -67,6 +69,7 @@
 		const id = name === 'Sun' ? 'sun' : name;
 		selected = { type: name === 'Sun' ? 'sun' : 'planet', id, name };
 		selectedBody = null;
+		selectedPlanet = name === 'Sun' ? null : PLANETS.find(p => p.name === name) ?? null;
 		sceneInstance?.focusOn(id);
 		cameraFollowing = true;
 	};
@@ -74,6 +77,7 @@
 	const handleSpacecraftSelect = (sc: Spacecraft) => {
 		selected = { type: 'spacecraft', id: sc.id, name: sc.name };
 		selectedBody = null;
+		selectedPlanet = null;
 		sceneInstance?.focusOn(sc.id);
 		cameraFollowing = true;
 	};
@@ -160,6 +164,7 @@
 		if (body) {
 			selected = { type: body.kind, id: body.id, name: body.name || body.des };
 			selectedBody = body;
+			selectedPlanet = null;
 			sceneInstance?.focusOn(id);
 		}
 	};
@@ -170,6 +175,7 @@
 		if (selected?.id === id) {
 			selected = null;
 			selectedBody = null;
+			selectedPlanet = null;
 		}
 	};
 
@@ -499,8 +505,9 @@
 	<InfoPanel
 		{selected}
 		bodyData={selectedBody}
+		planetData={selectedPlanet}
 		{isolated}
-		onClose={() => { selected = null; selectedBody = null; if (isolated) { isolated = false; sceneInstance?.setIsolatedView(false); } cameraFollowing = false; }}
+		onClose={() => { selected = null; selectedBody = null; selectedPlanet = null; if (isolated) { isolated = false; sceneInstance?.setIsolatedView(false); } cameraFollowing = false; }}
 		onFocus={handleFocus}
 		onIsolate={handleIsolate}
 	/>
@@ -876,7 +883,7 @@
 		background: none;
 		border: none;
 		color: #a0c0e0;
-		font-family: 'JetBrains Mono', monospace;
+		font-family: 'Orbitron', sans-serif;
 		font-size: 12px;
 		cursor: pointer;
 		border-radius: 4px;

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { SmallBody } from '$lib/types';
+	import type { SmallBody, PlanetData } from '$lib/types';
 	import { jdToDate, orbitalPosition } from '$lib/orbital';
 	import { currentJD } from '$lib/orbital';
 
@@ -12,6 +12,7 @@
 	let {
 		selected,
 		bodyData,
+		planetData,
 		isolated,
 		onClose,
 		onFocus,
@@ -19,6 +20,7 @@
 	}: {
 		selected: SelectedInfo | null;
 		bodyData: SmallBody | null;
+		planetData: PlanetData | null;
 		isolated: boolean;
 		onClose: () => void;
 		onFocus: (id: string) => void;
@@ -84,6 +86,43 @@
 			date: formatDate(bodyData.orbit.tp),
 			days: Math.round(Math.abs(diff)),
 			past: diff < 0,
+		};
+	});
+
+	// Planet distance from Sun in AU
+	const planetSunDist = $derived.by(() => {
+		if (!planetData) return null;
+		return planetData.realSemiMajorAxis;
+	});
+
+	// Planet distance from Earth in AU
+	const planetEarthDist = $derived.by(() => {
+		if (!planetData) return null;
+		const jd = currentJD();
+		const earthPos = orbitalPosition({ a: 1.0, e: 0.0167, i: 0, w: 114.208, omega: -11.260, ma: 358.617, epoch: 2451545.0 }, jd);
+		const planetPos = orbitalPosition({
+			a: planetData.realSemiMajorAxis,
+			e: planetData.eccentricity,
+			i: planetData.inclination,
+			w: planetData.argumentPerihelion,
+			omega: planetData.longitudeAscendingNode,
+			ma: planetData.meanAnomalyAtEpoch,
+			epoch: planetData.epoch,
+		}, jd);
+		const dx = earthPos[0] - planetPos[0];
+		const dy = earthPos[1] - planetPos[1];
+		const dz = earthPos[2] - planetPos[2];
+		return Math.sqrt(dx * dx + dy * dy + dz * dz) / 50;
+	});
+
+	// Planet perihelion/aphelion in AU
+	const planetPeriApo = $derived.by(() => {
+		if (!planetData) return null;
+		const a = planetData.realSemiMajorAxis;
+		const e = planetData.eccentricity;
+		return {
+			peri: a * (1 - e),
+			apo: a * (1 + e),
 		};
 	});
 </script>
@@ -251,11 +290,123 @@
 					{isolated ? '◉ ISOLATED VIEW' : '○ ISOLATE VIEW'}
 				</button>
 			</div>
-		{:else if selected.type === 'planet' || selected.type === 'sun'}
+		{:else if selected.type === 'planet' && planetData}
 			<div class="panel-body">
 				<div class="data-section">
-					<div class="section-title">{selected.type === 'sun' ? 'CENTRAL STAR' : 'PLANETARY BODY'}</div>
-					<p class="placeholder">Click to focus camera on {selected.name}.</p>
+					<div class="section-title">PHYSICAL DATA</div>
+					<div class="data-row">
+						<span class="label">Radius</span>
+						<span class="value">{planetData.realRadius.toLocaleString()} km</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Diameter</span>
+						<span class="value">{(planetData.realRadius * 2).toLocaleString()} km</span>
+					</div>
+					{#if planetData.rings}
+						<div class="data-row">
+							<span class="label">Ring System</span>
+							<span class="value">Yes</span>
+						</div>
+					{/if}
+					{#if planetData.hasAtmosphere}
+						<div class="data-row">
+							<span class="label">Atmosphere</span>
+							<span class="value">Yes</span>
+						</div>
+					{/if}
+				</div>
+
+				<div class="data-section">
+					<div class="section-title">ORBITAL ELEMENTS</div>
+					<div class="data-row">
+						<span class="label">Semi-Major Axis</span>
+						<span class="value">{planetData.realSemiMajorAxis.toFixed(3)} AU</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Eccentricity</span>
+						<span class="value">{planetData.eccentricity.toFixed(4)}</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Inclination</span>
+						<span class="value">{planetData.inclination.toFixed(3)}°</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Arg. Perihelion</span>
+						<span class="value">{planetData.argumentPerihelion.toFixed(3)}°</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Long. Asc. Node</span>
+						<span class="value">{planetData.longitudeAscendingNode.toFixed(3)}°</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Mean Anomaly</span>
+						<span class="value">{planetData.meanAnomalyAtEpoch.toFixed(3)}°</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Epoch</span>
+						<span class="value">{formatDate(planetData.epoch)}</span>
+					</div>
+					{#if planetPeriApo}
+						<div class="data-row">
+							<span class="label">Perihelion (q)</span>
+							<span class="value">{planetPeriApo.peri.toFixed(3)} AU</span>
+						</div>
+						<div class="data-row">
+							<span class="label">Aphelion (Q)</span>
+							<span class="value">{planetPeriApo.apo.toFixed(3)} AU</span>
+						</div>
+					{/if}
+					<div class="data-row">
+						<span class="label">Orbital Period</span>
+						<span class="value">{planetData.orbitalPeriod.toFixed(2)} days ({(planetData.orbitalPeriod / 365.25).toFixed(2)} yr)</span>
+					</div>
+				</div>
+
+			{#if planetEarthDist !== null}
+				<div class="data-section">
+					<div class="section-title">CURRENT POSITION</div>
+					<div class="data-row">
+						<span class="label">Distance from Sun</span>
+						<span class="value">{planetSunDist?.toFixed(3)} AU</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Distance from Earth</span>
+						<span class="value">{planetEarthDist.toFixed(3)} AU</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Distance (km)</span>
+						<span class="value">{(planetEarthDist * 149597870.7).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} km</span>
+					</div>
+				</div>
+			{/if}
+
+				<button class="focus-btn" onclick={() => onFocus(selected.id)} title="Move camera to this object">
+					⊙ FOCUS CAMERA
+				</button>
+				<button class="isolate-btn" class:active={isolated} onclick={() => onIsolate(!isolated)} title="Hide everything except this object">
+					{isolated ? '◉ ISOLATED VIEW' : '○ ISOLATE VIEW'}
+				</button>
+			</div>
+		{:else if selected.type === 'sun'}
+			<div class="panel-body">
+				<div class="data-section">
+					<div class="section-title">CENTRAL STAR</div>
+					<div class="data-row">
+						<span class="label">Type</span>
+						<span class="value">G2V Yellow Dwarf</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Radius</span>
+						<span class="value">696,340 km</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Surface Temp</span>
+						<span class="value">5,778 K</span>
+					</div>
+					<div class="data-row">
+						<span class="label">Mass</span>
+						<span class="value">1.989 × 10³⁰ kg</span>
+					</div>
 				</div>
 				<button class="focus-btn" onclick={() => onFocus(selected.id)} title="Move camera to this object">
 					⊙ FOCUS CAMERA
