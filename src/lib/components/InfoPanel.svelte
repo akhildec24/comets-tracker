@@ -418,8 +418,16 @@
 		{:else}
 			<div class="panel-body">
 				<div class="data-section">
-					<p class="placeholder">Loading orbital data...</p>
+					<p class="placeholder">{selected.type === 'planet' ? 'Planet data unavailable' : 'Loading orbital data...'}</p>
 				</div>
+				{#if selected.type === 'planet' || selected.type === 'sun'}
+					<button class="focus-btn" onclick={() => onFocus(selected.id)} title="Move camera to this object">
+						⊙ FOCUS CAMERA
+					</button>
+					<button class="isolate-btn" class:active={isolated} onclick={() => onIsolate(!isolated)} title="Hide everything except this object">
+						{isolated ? '◉ ISOLATED VIEW' : '○ ISOLATE VIEW'}
+					</button>
+				{/if}
 			</div>
 		{/if}
 	</div>
