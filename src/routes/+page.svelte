@@ -263,6 +263,36 @@
 		};
 		window.addEventListener('click', handleClickOutside);
 
+		// Keyboard shortcuts
+		const handleKeydown = (e: KeyboardEvent) => {
+			const target = e.target as HTMLElement;
+			if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+			switch (e.key) {
+				case ' ':
+					e.preventDefault();
+					handlePauseToggle();
+					break;
+				case '1': handleSpeedChange(0.1); break;
+				case '2': handleSpeedChange(1); break;
+				case '3': handleSpeedChange(10); break;
+				case '4': handleSpeedChange(50); break;
+				case '5': handleSpeedChange(100); break;
+				case '6': handleSpeedChange(365); break;
+				case 'Escape':
+					if (selected) {
+						selected = null; selectedBody = null; selectedPlanet = null;
+						if (isolated) { isolated = false; sceneInstance?.setIsolatedView(false); }
+						cameraFollowing = false;
+					}
+					settingsOpen = false;
+					break;
+				case 'r': case 'R':
+					resetView();
+					break;
+			}
+		};
+		window.addEventListener('keydown', handleKeydown);
+
 		// Auto-load from cache on startup
 		loadNotableObjects();
 		loadCloseApproaches();
@@ -272,6 +302,7 @@
 
 		return () => {
 			window.removeEventListener('click', handleClickOutside);
+			window.removeEventListener('keydown', handleKeydown);
 			if (refreshTimer) clearInterval(refreshTimer);
 			sceneInstance?.dispose();
 		};
@@ -549,6 +580,10 @@
 					<div class="help-row"><span class="help-key">RIGHT-DRAG</span> Pan camera</div>
 					<div class="help-row"><span class="help-key">CLICK</span> Select object</div>
 					<div class="help-row"><span class="help-key">SEARCH</span> Track by designation</div>
+					<div class="help-row"><span class="help-key">SPACE</span> Play / pause time</div>
+					<div class="help-row"><span class="help-key">1-6</span> Set time speed</div>
+					<div class="help-row"><span class="help-key">R</span> Reset camera view</div>
+					<div class="help-row"><span class="help-key">ESC</span> Close panel / settings</div>
 				</div>
 				<div class="help-actions">
 					<button class="help-btn primary" onclick={() => loadNotableObjects()} disabled={bodiesLoading}>
