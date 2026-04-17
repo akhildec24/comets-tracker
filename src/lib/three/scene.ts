@@ -17,6 +17,7 @@ interface TrackedBody {
 	label: string;
 	tail: THREE.Points | null;
 	dustTail: THREE.Points | null;
+	velocityArrow: THREE.ArrowHelper | null;
 }
 
 interface GalileanMoon {
@@ -885,7 +886,21 @@ export class SolarSystemScene {
 
 		this.createLabel(body.id, body.name || body.des, isComet ? '#00ffff' : '#ff8844');
 
-		this.trackedBodies.set(body.id, { body, mesh, orbitLine, label: body.name || body.des, tail, dustTail });
+		// Velocity direction arrow for comets
+		let velocityArrow: THREE.ArrowHelper | null = null;
+		if (isComet) {
+			velocityArrow = new THREE.ArrowHelper(
+				new THREE.Vector3(0, 0, 1),
+				mesh.position,
+				3,
+				0x00ffff,
+				1,
+				0.6
+			);
+			this.scene.add(velocityArrow);
+		}
+
+		this.trackedBodies.set(body.id, { body, mesh, orbitLine, label: body.name || body.des, tail, dustTail, velocityArrow });
 	}
 
 	public removeSmallBody(id: string) {
@@ -898,6 +913,9 @@ export class SolarSystemScene {
 		}
 		if (tracked.dustTail) {
 			this.scene.remove(tracked.dustTail);
+		}
+		if (tracked.velocityArrow) {
+			this.scene.remove(tracked.velocityArrow);
 		}
 		const label = this.labels.get(id);
 		if (label) {
@@ -941,6 +959,7 @@ export class SolarSystemScene {
 				tracked.orbitLine.visible = visible;
 				if (tracked.tail) tracked.tail.visible = visible;
 				if (tracked.dustTail) tracked.dustTail.visible = visible;
+				if (tracked.velocityArrow) tracked.velocityArrow.visible = visible;
 			}
 		}
 	}
@@ -1100,6 +1119,7 @@ export class SolarSystemScene {
 				tracked.mesh.visible = true;
 				tracked.orbitLine.visible = true;
 				if (tracked.tail) tracked.tail.visible = true;
+				if (tracked.velocityArrow) tracked.velocityArrow.visible = true;
 			}
 			if (this.moon) this.moon.visible = true;
 			for (const entry of this.spacecraft.values()) {
@@ -1171,6 +1191,7 @@ export class SolarSystemScene {
 				tracked.mesh.visible = false;
 				tracked.orbitLine.visible = false;
 				if (tracked.tail) tracked.tail.visible = false;
+				if (tracked.velocityArrow) tracked.velocityArrow.visible = false;
 				continue;
 			}
 			const dist = tracked.mesh.position.distanceTo(focusPos);
@@ -1179,6 +1200,7 @@ export class SolarSystemScene {
 			tracked.mesh.visible = isNear || isFocused;
 			tracked.orbitLine.visible = isNear || isFocused;
 			if (tracked.tail) tracked.tail.visible = isNear || isFocused;
+			if (tracked.velocityArrow) tracked.velocityArrow.visible = isNear || isFocused;
 		}
 	}
 
@@ -1359,6 +1381,20 @@ export class SolarSystemScene {
 					tracked.dustTail.lookAt(tracked.mesh.position.clone().add(dir));
 					tracked.dustTail.scale.setScalar(tailScale);
 					(tracked.dustTail.material as THREE.PointsMaterial).opacity = 0.5 * tailScale;
+				}
+
+				// Update velocity direction arrow
+				if (tracked.velocityArrow) {
+					const jdNext = this.currentJD + 0.5;
+					const [nx, ny, nz] = orbitalPosition(tracked.body.orbit, jdNext);
+					const vel = new THREE.Vector3(nx - x, ny - y, nz - z).normalize();
+					tracked.velocityArrow.position.copy(tracked.mesh.position);
+					tracked.velocityArrow.setDirection(vel);
+					// Scale arrow with tail scale for visual consistency
+					tracked.velocityArrow.setLength(2 + tailScale * 2, 0.8, 0.5);
+					// Fade arrow visibility when far from sun
+					(tracked.velocityArrow.line as THREE.Line).visible = tailScale > 0.2;
+					(tracked.velocityArrow.cone as THREE.Mesh).visible = tailScale > 0.2;
 				}
 			}
 		}
