@@ -50,6 +50,7 @@ export class SolarSystemScene {
 	private starField: THREE.Points;
 	private moon: THREE.Mesh | null = null;
 	private asteroidBelt: THREE.Points | null = null;
+	private kuiperBelt: THREE.Points | null = null;
 	private atmospheres: Map<string, THREE.Mesh> = new Map();
 	private earthClouds: THREE.Mesh | null = null;
 	private galileanMoons: GalileanMoon[] = [];
@@ -163,6 +164,9 @@ export class SolarSystemScene {
 
 		// Asteroid belt
 		this.createAsteroidBelt();
+
+		// Kuiper belt
+		this.createKuiperBelt();
 
 		// Post-processing: bloom for glow effects
 		this.composer = new EffectComposer(this.renderer);
@@ -680,6 +684,74 @@ export class SolarSystemScene {
 		this.scene.add(this.asteroidBelt);
 	}
 
+	private createKuiperBelt() {
+		const count = 6000;
+		const positions = new Float32Array(count * 3);
+		const colors = new Float32Array(count * 3);
+		const sizes = new Float32Array(count);
+
+		const innerRadius = 30 * 50; // ~30 AU
+		const outerRadius = 50 * 50; // ~50 AU
+
+		for (let i = 0; i < count; i++) {
+			const r = innerRadius + Math.random() * (outerRadius - innerRadius);
+			const theta = Math.random() * Math.PI * 2;
+			const incl = (Math.random() - 0.5) * 0.08;
+
+			positions[i * 3] = r * Math.cos(theta);
+			positions[i * 3 + 1] = r * Math.sin(incl);
+			positions[i * 3 + 2] = r * Math.sin(theta);
+
+			// Icy colors: blue-grey with variation
+			const brightness = 0.15 + Math.random() * 0.35;
+			const tint = Math.random();
+			colors[i * 3] = brightness * (0.4 + tint * 0.15);
+			colors[i * 3 + 1] = brightness * (0.5 + tint * 0.2);
+			colors[i * 3 + 2] = brightness * (0.6 + tint * 0.25);
+			sizes[i] = 0.5 + Math.random() * 1.5;
+		}
+
+		const geo = new THREE.BufferGeometry();
+		geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+		geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+		geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+
+		const mat = new THREE.ShaderMaterial({
+			uniforms: {
+				uPixelRatio: { value: this.renderer.getPixelRatio() },
+			},
+			vertexShader: `
+				attribute float aSize;
+				attribute vec3 color;
+				varying vec3 vColor;
+				uniform float uPixelRatio;
+				void main() {
+					vColor = color;
+					vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+					gl_PointSize = aSize * uPixelRatio * (300.0 / max(-mvPos.z, 1.0));
+					gl_Position = projectionMatrix * mvPos;
+				}
+			`,
+			fragmentShader: `
+				varying vec3 vColor;
+				void main() {
+					vec2 uv = gl_PointCoord - vec2(0.5);
+					float dist = length(uv);
+					if (dist > 0.5) discard;
+					float alpha = smoothstep(0.5, 0.35, dist);
+					float shade = 1.0 - dist * 0.6;
+					gl_FragColor = vec4(vColor * shade, alpha * 0.6);
+				}
+			`,
+			transparent: true,
+			depthWrite: false,
+			blending: THREE.NormalBlending,
+		});
+
+		this.kuiperBelt = new THREE.Points(geo, mat);
+		this.scene.add(this.kuiperBelt);
+	}
+
 	private createPlanetOrbit(planet: PlanetData): THREE.Line {
 		const segments = 256;
 		const points: THREE.Vector3[] = [];
@@ -1110,6 +1182,7 @@ export class SolarSystemScene {
 			this.starField.visible = true;
 			this.sunGlow.visible = true;
 			if (this.asteroidBelt) this.asteroidBelt.visible = true;
+		if (this.kuiperBelt) this.kuiperBelt.visible = true;
 			for (const [name, mesh] of this.planetMeshes) {
 				mesh.visible = true;
 				const orbit = this.planetOrbits.get(name);
@@ -1133,6 +1206,7 @@ export class SolarSystemScene {
 		this.starField.visible = false;
 		this.sunGlow.visible = false;
 		if (this.asteroidBelt) this.asteroidBelt.visible = false;
+		if (this.kuiperBelt) this.kuiperBelt.visible = false;
 
 		// Get focused object position
 		let focusPos: THREE.Vector3 | null = null;
@@ -1339,6 +1413,10 @@ export class SolarSystemScene {
 		// Slowly rotate asteroid belt
 		if (this.asteroidBelt) {
 			this.asteroidBelt.rotation.y += 0.0003;
+		}
+		// Slowly rotate Kuiper belt
+		if (this.kuiperBelt) {
+			this.kuiperBelt.rotation.y += 0.0001;
 		}
 
 		// Update small bodies
