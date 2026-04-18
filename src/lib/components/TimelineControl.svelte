@@ -60,6 +60,16 @@
 			onTimeChange(nextJD);
 		}
 	};
+
+	const handleDatePick = (e: Event) => {
+		const target = e.target as HTMLInputElement;
+		if (target.value) {
+			const date = new Date(target.value + 'T12:00:00Z');
+			onTimeChange(dateToJD(date));
+		}
+	};
+
+	const currentDate = $derived(formatDate(jd));
 </script>
 
 <div class="timeline-container">
@@ -73,7 +83,18 @@
 		</button>
 
 		<div class="slider-section">
-			<div class="date-display">{formatDate(jd)}</div>
+			<div class="date-row">
+				<div class="date-display">{formatDate(jd)}</div>
+				<input
+					type="date"
+					class="date-picker"
+					value={currentDate}
+					min="2000-01-01"
+					max="2050-01-01"
+					onchange={handleDatePick}
+					title="Jump to specific date"
+				/>
+			</div>
 			<input
 				type="range"
 				class="time-slider"
@@ -175,6 +196,34 @@
 		text-align: center;
 		letter-spacing: 2px;
 		text-shadow: 0 0 8px rgba(0, 200, 255, 0.3);
+	}
+
+	.date-row {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+	}
+
+	.date-picker {
+		background: rgba(0, 30, 50, 0.6);
+		border: 1px solid rgba(0, 150, 200, 0.3);
+		color: #00ccff;
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 10px;
+		padding: 2px 6px;
+		border-radius: 3px;
+		cursor: pointer;
+		outline: none;
+	}
+
+	.date-picker:hover {
+		border-color: rgba(0, 150, 200, 0.6);
+	}
+
+	.date-picker::-webkit-calendar-picker-indicator {
+		filter: invert(0.7) sepia(1) saturate(3) hue-rotate(160deg);
+		cursor: pointer;
 	}
 
 	.time-slider {
