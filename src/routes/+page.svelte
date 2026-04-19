@@ -348,6 +348,11 @@
 			<span class="logo-icon">◉</span>
 			<span class="logo-text">NEO TRACKER</span>
 			<span class="logo-sub">SOLAR SYSTEM VISUALIZATION</span>
+			{#if trackedBodies.length > 0}
+				<span class="object-count-badge" title="Tracked objects">
+					{trackedBodies.length} OBJECT{trackedBodies.length !== 1 ? 'S' : ''}
+				</span>
+			{/if}
 		</div>
 		<div class="search-area">
 			<SearchBar onSearch={handleSearch} loading={searchLoading} />
@@ -676,6 +681,20 @@
 		color: #4a6080;
 		letter-spacing: 2px;
 		margin-left: 4px;
+	}
+
+	.object-count-badge {
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 9px;
+		font-weight: 500;
+		color: #00ccff;
+		background: rgba(0, 100, 150, 0.2);
+		border: 1px solid rgba(0, 150, 200, 0.3);
+		padding: 2px 8px;
+		border-radius: 10px;
+		letter-spacing: 1px;
+		margin-left: 8px;
+		white-space: nowrap;
 	}
 
 	.search-area {
