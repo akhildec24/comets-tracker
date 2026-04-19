@@ -343,6 +343,12 @@
 <div class="app">
 	<div class="canvas-container" bind:this={container}></div>
 
+	{#if bodiesLoading || approachesLoading || searchLoading}
+		<div class="loading-bar">
+			<div class="loading-bar-fill"></div>
+		</div>
+	{/if}
+
 	<div class="top-bar">
 		<div class="logo">
 			<span class="logo-icon">◉</span>
@@ -637,6 +643,28 @@
 		left: 0;
 		width: 100%;
 		height: 100%;
+	}
+
+	.loading-bar {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 2px;
+		background: rgba(0, 30, 50, 0.4);
+		z-index: 1000;
+	}
+
+	.loading-bar-fill {
+		height: 100%;
+		background: linear-gradient(90deg, transparent, #00ccff, transparent);
+		background-size: 200% 100%;
+		animation: loading-slide 1.2s ease-in-out infinite;
+	}
+
+	@keyframes loading-slide {
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
 	}
 
 	.top-bar {
