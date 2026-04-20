@@ -338,6 +338,50 @@
 			sceneInstance?.addSpacecraft(sc);
 		}
 	};
+
+	const exportJSON = () => {
+		const data = trackedBodies.map(b => ({
+			designation: b.des,
+			name: b.name,
+			kind: b.kind,
+			absolute_magnitude: b.h,
+			diameter_km: b.diameter,
+			albedo: b.albedo,
+			orbit: b.orbit,
+		}));
+		const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `neo-tracker-export-${new Date().toISOString().slice(0, 10)}.json`;
+		a.click();
+		URL.revokeObjectURL(url);
+	};
+
+	const exportCSV = () => {
+		const headers = ['designation', 'name', 'kind', 'absolute_magnitude', 'diameter_km', 'semi_major_axis_AU', 'eccentricity', 'inclination_deg', 'perihelion_AU', 'aphelion_AU', 'orbital_period_yr'];
+		const rows = trackedBodies.map(b => [
+			b.des,
+			b.name,
+			b.kind,
+			b.h ?? '',
+			b.diameter ?? '',
+			b.orbit.a,
+			b.orbit.e,
+			b.orbit.i,
+			b.orbit.q ?? b.orbit.a * (1 - b.orbit.e),
+			b.orbit.q_au?.[1] ?? b.orbit.a * (1 + b.orbit.e),
+			b.orbit.period ?? '',
+		]);
+		const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+		const blob = new Blob([csv], { type: 'text/csv' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `neo-tracker-export-${new Date().toISOString().slice(0, 10)}.csv`;
+		a.click();
+		URL.revokeObjectURL(url);
+	};
 </script>
 
 <div class="app">
@@ -521,6 +565,16 @@
 							⊕ LOAD NOTABLE OBJECTS
 						{/if}
 					</button>
+					{#if trackedBodies.length > 0}
+						<div class="export-buttons">
+							<button class="action-btn small" onclick={exportCSV} title="Export tracked objects as CSV">
+								⬇ CSV
+							</button>
+							<button class="action-btn small" onclick={exportJSON} title="Export tracked objects as JSON">
+								⬇ JSON
+							</button>
+						</div>
+					{/if}
 				</div>
 			{:else if sidebarTab === 'missions'}
 				<div class="planet-list">
@@ -1058,6 +1112,19 @@
 		background: rgba(0, 150, 200, 0.25);
 		border-color: rgba(0, 200, 255, 0.5);
 		box-shadow: 0 0 8px rgba(0, 150, 200, 0.2);
+	}
+
+	.export-buttons {
+		display: flex;
+		gap: 6px;
+		margin-top: 6px;
+	}
+
+	.action-btn.small {
+		width: auto;
+		flex: 1;
+		padding: 6px 4px;
+		font-size: 9px;
 	}
 
 	.action-btn:disabled {
