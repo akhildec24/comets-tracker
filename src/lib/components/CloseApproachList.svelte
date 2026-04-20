@@ -21,11 +21,30 @@
 		if (dist < 0.1) return '#ffcc44';
 		return '#44cc88';
 	};
+
+	const now = new Date();
+	const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+	const isUpcoming = (dateStr: string) => {
+		const d = new Date(dateStr);
+		return d >= now && d <= thirtyDaysFromNow;
+	};
+
+	const isUrgent = (ca: CloseApproach) => {
+		return isUpcoming(ca.date) && ca.dist < 0.05;
+	};
+
+	const upcomingCount = $derived(approaches.filter(a => isUpcoming(a.date)).length);
 </script>
 
 <div class="approach-list">
 	<div class="list-header">
 		<span class="header-title">CLOSE APPROACHES</span>
+		{#if upcomingCount > 0}
+			<span class="alert-badge" title="{upcomingCount} close approach(es) in the next 30 days">
+				⚠ {upcomingCount}
+			</span>
+		{/if}
 		{#if loading}
 			<div class="mini-spinner"></div>
 		{/if}
@@ -39,7 +58,7 @@
 
 	<div class="list-body">
 		{#each approaches as ca}
-			<button class="approach-item" onclick={() => onSelect(ca.des)}>
+			<button class="approach-item" class:urgent={isUrgent(ca)} class:upcoming={isUpcoming(ca.date)} onclick={() => onSelect(ca.des)}>
 				<div class="item-left">
 					<div class="item-des">{ca.des}</div>
 					<div class="item-date">{formatDate(ca.date)}</div>
@@ -76,6 +95,18 @@
 		font-weight: 700;
 		letter-spacing: 2px;
 		color: #00aadd;
+	}
+
+	.alert-badge {
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 10px;
+		font-weight: 700;
+		color: #ff8844;
+		background: rgba(255, 100, 50, 0.15);
+		border: 1px solid rgba(255, 130, 70, 0.3);
+		padding: 1px 6px;
+		border-radius: 8px;
+		letter-spacing: 0;
 	}
 
 	.mini-spinner {
@@ -120,6 +151,19 @@
 
 	.approach-item:hover {
 		background: rgba(0, 50, 80, 0.3);
+	}
+
+	.approach-item.upcoming {
+		border-left: 2px solid rgba(255, 200, 80, 0.4);
+	}
+
+	.approach-item.urgent {
+		border-left: 2px solid #ff4444;
+		background: rgba(60, 10, 10, 0.3);
+	}
+
+	.approach-item.urgent:hover {
+		background: rgba(80, 20, 20, 0.4);
 	}
 
 	.item-left {
