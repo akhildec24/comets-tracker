@@ -1279,4 +1279,54 @@
 	.help-github:hover {
 		color: #00ccff;
 	}
+
+	/* Tablet */
+	@media (max-width: 768px) {
+		.left-sidebar {
+			width: 240px;
+		}
+		.logo-sub {
+			display: none;
+		}
+		.search-area {
+			max-width: 200px;
+		}
+		.help-card {
+			max-width: 340px;
+		}
+	}
+
+	/* Phone */
+	@media (max-width: 480px) {
+		.top-bar {
+			padding: 6px 8px;
+		}
+		.logo-text {
+			font-size: 12px;
+		}
+		.logo-sub {
+			display: none;
+		}
+		.search-area {
+			max-width: 140px;
+		}
+		.left-sidebar {
+			width: calc(100vw - 32px);
+			max-width: 280px;
+		}
+		.status-area {
+			display: none;
+		}
+		.help-card {
+			max-width: calc(100vw - 32px);
+			padding: 16px;
+		}
+		.help-title {
+			font-size: 16px;
+		}
+		.info-panel {
+			width: calc(100vw - 32px);
+			max-width: 320px;
+		}
+	}
 </style>
