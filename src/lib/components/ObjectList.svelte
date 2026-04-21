@@ -18,6 +18,20 @@
 	} = $props();
 
 	let searchQuery = $state('');
+	let showFavoritesOnly = $state(false);
+
+	let favorites = $state<Set<string>>(new Set(
+		JSON.parse(localStorage.getItem('neo-favorites') || '[]')
+	));
+
+	const toggleFavorite = (id: string, e: Event) => {
+		e.stopPropagation();
+		const next = new Set(favorites);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		favorites = next;
+		localStorage.setItem('neo-favorites', JSON.stringify([...next]));
+	};
 
 	const kindIcon = (kind: string) => {
 		switch (kind) {
@@ -39,6 +53,7 @@
 
 	const filteredBodies = $derived.by(() => {
 		return bodies.filter(b => {
+			if (showFavoritesOnly && !favorites.has(b.id)) return false;
 			if (b.kind === 'comet' && !showComets) return false;
 			if (b.kind === 'asteroid' && !showAsteroids) return false;
 			if (b.kind === 'dormant' && !showDormant) return false;
@@ -54,6 +69,9 @@
 <div class="object-list">
 	<div class="list-header">
 		<span class="header-title">TRACKED OBJECTS</span>
+		<button class="fav-toggle" class:active={showFavoritesOnly} onclick={() => showFavoritesOnly = !showFavoritesOnly} title="Show favorites only">
+			{'\u2605'}
+		</button>
 		<span class="count-badge">{filteredBodies.length}/{bodies.length}</span>
 	</div>
 
@@ -76,6 +94,9 @@
 						<div class="item-name">{body.name || body.des}</div>
 						<div class="item-des">{body.des}</div>
 					</div>
+				</button>
+				<button class="fav-btn" class:active={favorites.has(body.id)} onclick={(e) => toggleFavorite(body.id, e)} title="Toggle favorite">
+					{favorites.has(body.id) ? '\u2605' : '\u2606'}
 				</button>
 				<button class="remove-btn" onclick={() => onRemove(body.id)} title="Remove from tracking">
 					{'\u2715'}
@@ -115,6 +136,40 @@
 		padding: 1px 6px;
 		border-radius: 8px;
 		border: 1px solid rgba(0, 150, 200, 0.3);
+	}
+
+	.fav-toggle {
+		background: none;
+		border: none;
+		color: #4a6080;
+		font-size: 14px;
+		cursor: pointer;
+		padding: 0;
+		transition: all 0.2s;
+	}
+
+	.fav-toggle.active {
+		color: #ffcc44;
+		text-shadow: 0 0 6px rgba(255, 200, 80, 0.4);
+	}
+
+	.fav-btn {
+		background: none;
+		border: none;
+		color: #4a6080;
+		font-size: 14px;
+		cursor: pointer;
+		padding: 2px 4px;
+		transition: all 0.2s;
+	}
+
+	.fav-btn:hover {
+		color: #ffcc44;
+	}
+
+	.fav-btn.active {
+		color: #ffcc44;
+		text-shadow: 0 0 4px rgba(255, 200, 80, 0.3);
 	}
 
 	.search-filter {
