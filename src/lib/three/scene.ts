@@ -529,6 +529,8 @@ export class SolarSystemScene {
 				phase: data.phase,
 				color: data.color,
 			});
+
+			this.createLabel(`galilean-${data.name}`, data.name, '#' + data.color.toString(16).padStart(6, '0'));
 		}
 	}
 
@@ -826,9 +828,13 @@ export class SolarSystemScene {
 	}
 
 	private updateLabels() {
-		const update = (id: string, pos: THREE.Vector3) => {
+		const update = (id: string, pos: THREE.Vector3, visible: boolean = true) => {
 			const label = this.labels.get(id);
 			if (!label) return;
+			if (!visible) {
+				label.style.display = 'none';
+				return;
+			}
 			const screenPos = pos.clone().project(this.camera);
 			if (screenPos.z > 1 || screenPos.z < -1) {
 				label.style.display = 'none';
@@ -847,6 +853,9 @@ export class SolarSystemScene {
 		}
 		if (this.moon) {
 			update('moon', this.moon.position);
+		}
+		for (const gm of this.galileanMoons) {
+			update(`galilean-${gm.mesh.userData.name}`, gm.mesh.position, gm.mesh.visible);
 		}
 		for (const [id, tracked] of this.trackedBodies) {
 			update(id, tracked.mesh.position);
