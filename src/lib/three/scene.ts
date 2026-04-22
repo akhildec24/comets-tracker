@@ -43,7 +43,7 @@ export class SolarSystemScene {
 	private controls: OrbitControls;
 	private container: HTMLElement;
 
-	private planetMeshes: Map<string, THREE.Mesh> = new Map();
+	private planetMeshes: Map<string, THREE.Object3D> = new Map();
 	private planetOrbits: Map<string, THREE.Line> = new Map();
 	private sun: THREE.Mesh;
 	private sunGlow: THREE.Mesh;
@@ -310,6 +310,7 @@ export class SolarSystemScene {
 		const texture = createPlanetTexture(texType);
 
 		const geo = new THREE.SphereGeometry(planet.radius, 128, 64);
+		const geoLow = new THREE.SphereGeometry(planet.radius, 32, 16);
 		const mat = new THREE.MeshStandardMaterial({
 			map: texture,
 			roughness: planet.name === 'Earth' ? 0.6 : 0.85,
@@ -328,17 +329,24 @@ export class SolarSystemScene {
 		const mesh = new THREE.Mesh(geo, mat);
 		mesh.userData = { type: 'planet', id: planet.name, name: planet.name };
 
+		const meshLow = new THREE.Mesh(geoLow, mat);
+
+		const lod = new THREE.LOD();
+		lod.addLevel(mesh, 0);
+		lod.addLevel(meshLow, 200);
+		lod.userData = { type: 'planet', id: planet.name, name: planet.name };
+
 		// Axial tilt (approximate real values)
 		const tilts: Record<string, number> = {
 			Mercury: 0.03, Venus: 177.4, Earth: 23.4, Mars: 25.2,
 			Jupiter: 3.1, Saturn: 26.7, Uranus: 97.8, Neptune: 28.3
 		};
 		const tilt = (tilts[planet.name] || 0) * Math.PI / 180;
-		mesh.rotation.z = tilt;
+		lod.rotation.z = tilt;
 
 		this.clickTargets.push(mesh);
-		this.scene.add(mesh);
-		this.planetMeshes.set(planet.name, mesh);
+		this.scene.add(lod);
+		this.planetMeshes.set(planet.name, lod);
 
 		// Earth cloud layer (separate rotating sphere)
 		if (planet.name === 'Earth') {
@@ -1648,6 +1656,13 @@ export class SolarSystemScene {
 		this.updatePositions();
 		this.updateLabels();
 		this.controls.update();
+
+		// Update LOD levels for planets
+		for (const lod of this.planetMeshes.values()) {
+			if (lod instanceof THREE.LOD) {
+				lod.update(this.camera);
+			}
+		}
 
 		// Sun glow pulsing
 		const t = performance.now() * 0.001;
