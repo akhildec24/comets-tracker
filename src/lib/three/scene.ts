@@ -48,6 +48,7 @@ export class SolarSystemScene {
 	private sun: THREE.Mesh;
 	private sunGlow: THREE.Mesh;
 	private starField: THREE.Points;
+	private constellationLines: THREE.LineSegments;
 	private moon: THREE.Mesh | null = null;
 	private asteroidBelt: THREE.Points | null = null;
 	private kuiperBelt: THREE.Points | null = null;
@@ -150,6 +151,10 @@ export class SolarSystemScene {
 		// Star field
 		this.starField = this.createStarField();
 		this.scene.add(this.starField);
+
+		// Constellation lines
+		this.constellationLines = this.createConstellations();
+		this.scene.add(this.constellationLines);
 
 		// Planets
 		for (const planet of PLANETS) {
@@ -303,6 +308,82 @@ export class SolarSystemScene {
 		});
 
 		return new THREE.Points(geo, mat);
+	}
+
+	private createConstellations(): THREE.LineSegments {
+		const R = 3000; // distance for constellation stars
+		type StarDef = [number, number]; // [ra degrees, dec degrees]
+		type Constellation = { name: string; lines: StarDef[][] };
+
+		const constellations: Constellation[] = [
+			// Ursa Major (Big Dipper)
+			{ name: 'Ursa Major', lines: [
+				[[165.9, 61.8], [173.5, 56.4]], [[173.5, 56.4], [179.8, 53.5]],
+				[[179.8, 53.5], [185.5, 57.2]], [[185.5, 57.2], [193.5, 55.0]],
+				[[193.5, 55.0], [201.3, 43.7]], [[201.3, 43.7], [179.8, 53.5]],
+			]},
+			// Orion
+			{ name: 'Orion', lines: [
+				[[78.6, -8.2], [88.8, 7.4]], [[88.8, 7.4], [95.2, -1.2]],
+				[[95.2, -1.2], [84.1, -1.9]], [[84.1, -1.9], [78.6, -8.2]],
+				[[88.8, 7.4], [81.3, 6.0]], [[95.2, -1.2], [98.0, -9.7]],
+				[[84.1, -1.9], [86.9, -9.7]],
+			]},
+			// Cassiopeia
+			{ name: 'Cassiopeia', lines: [
+				[[2.3, 59.1], [10.1, 56.5]], [[10.1, 56.5], [13.7, 60.2]],
+				[[13.7, 60.2], [23.5, 57.5]], [[23.5, 57.5], [32.9, 61.1]],
+			]},
+			// Cygnus (Northern Cross)
+			{ name: 'Cygnus', lines: [
+				[[310.4, 45.3], [305.6, 40.3]], [[305.6, 40.3], [299.1, 38.5]],
+				[[299.1, 38.5], [292.3, 36.8]], [[305.6, 40.3], [312.5, 37.1]],
+				[[305.6, 40.3], [309.1, 42.7]],
+			]},
+			// Leo
+			{ name: 'Leo', lines: [
+				[[146.5, 21.5], [137.0, 25.1]], [[137.0, 25.1], [130.5, 20.5]],
+				[[130.5, 20.5], [126.2, 23.4]], [[126.2, 23.4], [131.1, 15.4]],
+				[[131.1, 15.4], [146.5, 21.5]],
+			]},
+			// Scorpius
+			{ name: 'Scorpius', lines: [
+				[[240.1, -26.1], [241.4, -19.8]], [[241.4, -19.8], [245.3, -22.6]],
+				[[245.3, -22.6], [251.0, -29.3]], [[251.0, -29.3], [258.7, -37.1]],
+				[[258.7, -37.1], [263.0, -42.4]], [[263.0, -42.4], [269.3, -42.9]],
+			]},
+		];
+
+		const positions: number[] = [];
+
+		for (const con of constellations) {
+			for (const [a, b] of con.lines) {
+				const posA = this.celestialToCartesian(a[0], a[1], R);
+				const posB = this.celestialToCartesian(b[0], b[1], R);
+				positions.push(posA.x, posA.y, posA.z, posB.x, posB.y, posB.z);
+			}
+		}
+
+		const geo = new THREE.BufferGeometry();
+		geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+		const mat = new THREE.LineBasicMaterial({
+			color: 0x2a4a6a,
+			transparent: true,
+			opacity: 0.35,
+		});
+
+		return new THREE.LineSegments(geo, mat);
+	}
+
+	private celestialToCartesian(raDeg: number, decDeg: number, r: number): THREE.Vector3 {
+		const ra = raDeg * Math.PI / 180;
+		const dec = decDeg * Math.PI / 180;
+		return new THREE.Vector3(
+			r * Math.cos(dec) * Math.cos(ra),
+			r * Math.sin(dec),
+			r * Math.cos(dec) * Math.sin(ra)
+		);
 	}
 
 	private createPlanet(planet: PlanetData) {
@@ -1197,6 +1278,7 @@ export class SolarSystemScene {
 		if (!this.isolated || !this.isolatedId) {
 			// Show everything
 			this.starField.visible = true;
+			this.constellationLines.visible = true;
 			this.sunGlow.visible = true;
 			if (this.asteroidBelt) this.asteroidBelt.visible = true;
 		if (this.kuiperBelt) this.kuiperBelt.visible = true;
@@ -1221,6 +1303,7 @@ export class SolarSystemScene {
 
 		// Isolated mode: hide everything, then show only the focused object + nearby small bodies
 		this.starField.visible = false;
+		this.constellationLines.visible = false;
 		this.sunGlow.visible = false;
 		if (this.asteroidBelt) this.asteroidBelt.visible = false;
 		if (this.kuiperBelt) this.kuiperBelt.visible = false;
