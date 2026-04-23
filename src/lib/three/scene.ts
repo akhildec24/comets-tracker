@@ -49,6 +49,7 @@ export class SolarSystemScene {
 	private sunGlow: THREE.Mesh;
 	private starField: THREE.Points;
 	private constellationLines: THREE.LineSegments;
+	private meteorRadiants: THREE.Points | null = null;
 	private moon: THREE.Mesh | null = null;
 	private asteroidBelt: THREE.Points | null = null;
 	private kuiperBelt: THREE.Points | null = null;
@@ -155,6 +156,10 @@ export class SolarSystemScene {
 		// Constellation lines
 		this.constellationLines = this.createConstellations();
 		this.scene.add(this.constellationLines);
+
+		// Meteor shower radiants
+		this.meteorRadiants = this.createMeteorRadiants();
+		this.scene.add(this.meteorRadiants);
 
 		// Planets
 		for (const planet of PLANETS) {
@@ -384,6 +389,80 @@ export class SolarSystemScene {
 			r * Math.sin(dec),
 			r * Math.cos(dec) * Math.sin(ra)
 		);
+	}
+
+	private createMeteorRadiants(): THREE.Points {
+		const R = 2800;
+		// Major meteor shower radiants: [ra, dec, color]
+		const showers: [number, number, number][] = [
+			[210, 49, 0xff4444],   // Perseids (Aug)
+			[95, 15, 0xff8844],    // Geminids (Dec)
+			[76, 32, 0xffcc44],    // Quadrantids (Jan)
+			[158, -22, 0x44ff88],  // Eta Aquariids (May)
+			[52, 22, 0x4488ff],    // Lyrids (Apr)
+			[238, -50, 0xff44ff],  // Orionids (Oct)
+			[259, 54, 0x44ffff],   // Ursids (Dec)
+			[32, -15, 0xffaa44],   // Leonids (Nov)
+			[271, 33, 0x88ff44],   // Draconids (Oct)
+			[113, 45, 0xff6688],   // Lyrids alternate
+		];
+
+		const positions = new Float32Array(showers.length * 3);
+		const colors = new Float32Array(showers.length * 3);
+		const sizes = new Float32Array(showers.length);
+
+		for (let i = 0; i < showers.length; i++) {
+			const [ra, dec, color] = showers[i];
+			const pos = this.celestialToCartesian(ra, dec, R);
+			positions[i * 3] = pos.x;
+			positions[i * 3 + 1] = pos.y;
+			positions[i * 3 + 2] = pos.z;
+
+			const c = new THREE.Color(color);
+			colors[i * 3] = c.r;
+			colors[i * 3 + 1] = c.g;
+			colors[i * 3 + 2] = c.b;
+			sizes[i] = 8;
+		}
+
+		const geo = new THREE.BufferGeometry();
+		geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+		geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+		geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+
+		const mat = new THREE.ShaderMaterial({
+			uniforms: {
+				uPixelRatio: { value: this.renderer.getPixelRatio() },
+			},
+			vertexShader: `
+				attribute float aSize;
+				attribute vec3 color;
+				varying vec3 vColor;
+				uniform float uPixelRatio;
+				void main() {
+					vColor = color;
+					vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+					gl_PointSize = aSize * uPixelRatio * (300.0 / max(-mvPos.z, 1.0));
+					gl_Position = projectionMatrix * mvPos;
+				}
+			`,
+			fragmentShader: `
+				varying vec3 vColor;
+				void main() {
+					vec2 uv = gl_PointCoord - vec2(0.5);
+					float dist = length(uv);
+					if (dist > 0.5) discard;
+					float alpha = smoothstep(0.5, 0.0, dist);
+					float ring = smoothstep(0.35, 0.3, dist) - smoothstep(0.3, 0.25, dist);
+					gl_FragColor = vec4(vColor * (alpha + ring * 0.5), alpha * 0.6);
+				}
+			`,
+			transparent: true,
+			depthWrite: false,
+			blending: THREE.AdditiveBlending,
+		});
+
+		return new THREE.Points(geo, mat);
 	}
 
 	private createPlanet(planet: PlanetData) {
@@ -1279,6 +1358,7 @@ export class SolarSystemScene {
 			// Show everything
 			this.starField.visible = true;
 			this.constellationLines.visible = true;
+			if (this.meteorRadiants) this.meteorRadiants.visible = true;
 			this.sunGlow.visible = true;
 			if (this.asteroidBelt) this.asteroidBelt.visible = true;
 		if (this.kuiperBelt) this.kuiperBelt.visible = true;
@@ -1304,6 +1384,7 @@ export class SolarSystemScene {
 		// Isolated mode: hide everything, then show only the focused object + nearby small bodies
 		this.starField.visible = false;
 		this.constellationLines.visible = false;
+		if (this.meteorRadiants) this.meteorRadiants.visible = false;
 		this.sunGlow.visible = false;
 		if (this.asteroidBelt) this.asteroidBelt.visible = false;
 		if (this.kuiperBelt) this.kuiperBelt.visible = false;
