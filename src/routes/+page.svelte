@@ -41,6 +41,9 @@
 	let showSpacecraft = $state(false);
 	let spacecraftLoaded = $state(false);
 	let settingsOpen = $state(false);
+	let compareMode = $state(false);
+	let compareA = $state<string | null>(null);
+	let compareB = $state<string | null>(null);
 
 	const cometCount = $derived(trackedBodies.filter(b => b.kind === 'comet').length);
 	const asteroidCount = $derived(trackedBodies.filter(b => b.kind === 'asteroid').length);
@@ -49,6 +52,9 @@
 	const findBody = (id: string): SmallBody | null => {
 		return trackedBodies.find(b => b.id === id || b.des === id || b.name === id) || null;
 	};
+
+	const compareBodyA = $derived(compareA ? findBody(compareA) : null);
+	const compareBodyB = $derived(compareB ? findBody(compareB) : null);
 
 	const handleSelect = (data: { type: string; id: string; name: string } | null) => {
 		selected = data;
@@ -574,6 +580,11 @@
 								⬇ JSON
 							</button>
 						</div>
+						{#if trackedBodies.length >= 2}
+							<button class="action-btn small" onclick={() => { compareMode = !compareMode; if (!compareMode) { compareA = null; compareB = null; } }} title="Compare two objects side by side">
+								⇄ COMPARE
+							</button>
+						{/if}
 					{/if}
 				</div>
 			{:else if sidebarTab === 'missions'}
@@ -627,6 +638,70 @@
 		onFocus={handleFocus}
 		onIsolate={handleIsolate}
 	/>
+
+	{#if compareMode && (compareBodyA || compareBodyB)}
+		<div class="compare-panel">
+			<div class="compare-header">
+				<span class="compare-title">COMPARISON</span>
+				<button class="compare-close" onclick={() => { compareMode = false; compareA = null; compareB = null; }}>✕</button>
+			</div>
+			<div class="compare-body">
+				{#if compareBodyA}
+					<div class="compare-col">
+						<div class="compare-name">{compareBodyA.name || compareBodyA.des}</div>
+						<div class="compare-row"><span>Kind</span><span>{compareBodyA.kind}</span></div>
+						<div class="compare-row"><span>H mag</span><span>{compareBodyA.h ?? '—'}</span></div>
+						<div class="compare-row"><span>Diameter</span><span>{compareBodyA.diameter ? compareBodyA.diameter.toFixed(2) + ' km' : '—'}</span></div>
+						<div class="compare-row"><span>a (AU)</span><span>{compareBodyA.orbit.a.toFixed(3)}</span></div>
+						<div class="compare-row"><span>e</span><span>{compareBodyA.orbit.e.toFixed(4)}</span></div>
+						<div class="compare-row"><span>i (°)</span><span>{compareBodyA.orbit.i.toFixed(2)}</span></div>
+						<div class="compare-row"><span>q (AU)</span><span>{(compareBodyA.orbit.q ?? compareBodyA.orbit.a * (1 - compareBodyA.orbit.e)).toFixed(3)}</span></div>
+						<div class="compare-row"><span>Q (AU)</span><span>{(compareBodyA.orbit.q_au?.[1] ?? compareBodyA.orbit.a * (1 + compareBodyA.orbit.e)).toFixed(3)}</span></div>
+						<div class="compare-row"><span>Period</span><span>{compareBodyA.orbit.period ? compareBodyA.orbit.period.toFixed(1) + ' yr' : '—'}</span></div>
+					</div>
+				{:else}
+					<div class="compare-col empty-col">
+						<select class="compare-select" onchange={(e) => compareA = (e.target as HTMLSelectElement).value}>
+							<option value="">Select A...</option>
+							{#each trackedBodies as b}
+								<option value={b.id}>{b.name || b.des}</option>
+							{/each}
+						</select>
+					</div>
+				{/if}
+				{#if compareBodyB}
+					<div class="compare-col">
+						<div class="compare-name">{compareBodyB.name || compareBodyB.des}</div>
+						<div class="compare-row"><span>Kind</span><span>{compareBodyB.kind}</span></div>
+						<div class="compare-row"><span>H mag</span><span>{compareBodyB.h ?? '—'}</span></div>
+						<div class="compare-row"><span>Diameter</span><span>{compareBodyB.diameter ? compareBodyB.diameter.toFixed(2) + ' km' : '—'}</span></div>
+						<div class="compare-row"><span>a (AU)</span><span>{compareBodyB.orbit.a.toFixed(3)}</span></div>
+						<div class="compare-row"><span>e</span><span>{compareBodyB.orbit.e.toFixed(4)}</span></div>
+						<div class="compare-row"><span>i (°)</span><span>{compareBodyB.orbit.i.toFixed(2)}</span></div>
+						<div class="compare-row"><span>q (AU)</span><span>{(compareBodyB.orbit.q ?? compareBodyB.orbit.a * (1 - compareBodyB.orbit.e)).toFixed(3)}</span></div>
+						<div class="compare-row"><span>Q (AU)</span><span>{(compareBodyB.orbit.q_au?.[1] ?? compareBodyB.orbit.a * (1 + compareBodyB.orbit.e)).toFixed(3)}</span></div>
+						<div class="compare-row"><span>Period</span><span>{compareBodyB.orbit.period ? compareBodyB.orbit.period.toFixed(1) + ' yr' : '—'}</span></div>
+					</div>
+				{:else}
+					<div class="compare-col empty-col">
+						<select class="compare-select" onchange={(e) => compareB = (e.target as HTMLSelectElement).value}>
+							<option value="">Select B...</option>
+							{#each trackedBodies as b}
+								<option value={b.id}>{b.name || b.des}</option>
+							{/each}
+						</select>
+					</div>
+				{/if}
+			</div>
+			{#if compareBodyA && compareBodyB}
+				<div class="compare-diff">
+					<div class="compare-row"><span>Δa</span><span>{Math.abs(compareBodyA.orbit.a - compareBodyB.orbit.a).toFixed(3)} AU</span></div>
+					<div class="compare-row"><span>Δe</span><span>{Math.abs(compareBodyA.orbit.e - compareBodyB.orbit.e).toFixed(4)}</span></div>
+					<div class="compare-row"><span>Δi</span><span>{Math.abs(compareBodyA.orbit.i - compareBodyB.orbit.i).toFixed(2)}°</span></div>
+				</div>
+			{/if}
+		</div>
+	{/if}
 
 	{#if cameraFollowing && !selected}
 		<button class="reset-view-btn" onclick={resetView} title="Exit follow mode and reset view">
@@ -1125,6 +1200,132 @@
 		flex: 1;
 		padding: 6px 4px;
 		font-size: 9px;
+	}
+
+	.compare-panel {
+		position: absolute;
+		bottom: 80px;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 480px;
+		max-width: calc(100vw - 32px);
+		background: rgba(5, 12, 25, 0.95);
+		border: 1px solid rgba(0, 150, 200, 0.3);
+		border-radius: 4px;
+		backdrop-filter: blur(10px);
+		z-index: 60;
+		box-shadow: 0 0 20px rgba(0, 100, 150, 0.15);
+	}
+
+	.compare-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 8px 12px;
+		border-bottom: 1px solid rgba(0, 100, 150, 0.2);
+	}
+
+	.compare-title {
+		font-family: 'Orbitron', sans-serif;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 2px;
+		color: #00aadd;
+	}
+
+	.compare-close {
+		background: none;
+		border: 1px solid rgba(60, 80, 120, 0.3);
+		color: #6080a0;
+		width: 20px;
+		height: 20px;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 10px;
+	}
+
+	.compare-close:hover {
+		border-color: rgba(255, 100, 100, 0.5);
+		color: #ff6666;
+	}
+
+	.compare-body {
+		display: flex;
+		gap: 1px;
+		background: rgba(0, 100, 150, 0.15);
+	}
+
+	.compare-col {
+		flex: 1;
+		padding: 10px 12px;
+		background: rgba(5, 12, 25, 0.9);
+	}
+
+	.compare-col.empty-col {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 120px;
+	}
+
+	.compare-select {
+		width: 100%;
+		padding: 6px 8px;
+		background: rgba(10, 20, 40, 0.6);
+		border: 1px solid rgba(60, 80, 120, 0.3);
+		color: #c0e0ff;
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 11px;
+		border-radius: 4px;
+		outline: none;
+	}
+
+	.compare-name {
+		font-family: 'Orbitron', sans-serif;
+		font-size: 12px;
+		font-weight: 700;
+		color: #00ccff;
+		margin-bottom: 8px;
+		text-align: center;
+	}
+
+	.compare-row {
+		display: flex;
+		justify-content: space-between;
+		font-size: 10px;
+		font-family: 'JetBrains Mono', monospace;
+		padding: 2px 0;
+	}
+
+	.compare-row span:first-child {
+		color: #6080a0;
+	}
+
+	.compare-row span:last-child {
+		color: #c0e0ff;
+	}
+
+	.compare-diff {
+		display: flex;
+		gap: 16px;
+		padding: 8px 12px;
+		border-top: 1px solid rgba(0, 100, 150, 0.2);
+	}
+
+	.compare-diff .compare-row {
+		flex: 1;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+	}
+
+	.compare-diff .compare-row span:first-child {
+		font-size: 9px;
+	}
+
+	.compare-diff .compare-row span:last-child {
+		color: #ffcc44;
+		font-weight: 700;
 	}
 
 	.action-btn:disabled {
