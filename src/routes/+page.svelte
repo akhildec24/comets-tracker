@@ -59,6 +59,7 @@
 	const handleSelect = (data: { type: string; id: string; name: string } | null) => {
 		selected = data;
 		if (data) {
+			orbitVisible = sceneInstance?.isOrbitVisible(data.id) ?? true;
 			if (data.type === 'planet') {
 				selectedPlanet = PLANETS.find(p => p.name === data.name) ?? null;
 				selectedBody = null;
@@ -105,6 +106,12 @@
 	const handleIsolate = (enabled: boolean) => {
 		isolated = enabled;
 		sceneInstance?.setIsolatedView(enabled, selected?.id);
+	};
+
+	let orbitVisible = $state(true);
+
+	const handleToggleOrbit = (id: string) => {
+		orbitVisible = sceneInstance?.toggleOrbitVisibility(id) ?? true;
 	};
 
 	const resetView = () => {
@@ -634,9 +641,11 @@
 		bodyData={selectedBody}
 		planetData={selectedPlanet}
 		{isolated}
+		{orbitVisible}
 		onClose={() => { selected = null; selectedBody = null; selectedPlanet = null; if (isolated) { isolated = false; sceneInstance?.setIsolatedView(false); } cameraFollowing = false; }}
 		onFocus={handleFocus}
 		onIsolate={handleIsolate}
+		onToggleOrbit={handleToggleOrbit}
 	/>
 
 	{#if compareMode && (compareBodyA || compareBodyB)}

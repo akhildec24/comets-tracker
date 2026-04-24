@@ -58,6 +58,7 @@ export class SolarSystemScene {
 	private galileanMoons: GalileanMoon[] = [];
 	private spacecraft: Map<string, TrackedSpacecraft> = new Map();
 	private spacecraftVisible = true;
+	private hiddenOrbits: Set<string> = new Set();
 	private composer: EffectComposer | null = null;
 	private bloomPass: UnrealBloomPass | null = null;
 
@@ -1205,12 +1206,30 @@ export class SolarSystemScene {
 		for (const tracked of this.trackedBodies.values()) {
 			if (tracked.body.kind === kind) {
 				tracked.mesh.visible = visible;
-				tracked.orbitLine.visible = visible;
+				tracked.orbitLine.visible = visible && !this.hiddenOrbits.has(tracked.body.id);
 				if (tracked.tail) tracked.tail.visible = visible;
 				if (tracked.dustTail) tracked.dustTail.visible = visible;
 				if (tracked.velocityArrow) tracked.velocityArrow.visible = visible;
 			}
 		}
+	}
+
+	public toggleOrbitVisibility(id: string): boolean {
+		if (this.hiddenOrbits.has(id)) {
+			this.hiddenOrbits.delete(id);
+		} else {
+			this.hiddenOrbits.add(id);
+		}
+		const visible = !this.hiddenOrbits.has(id);
+		const tracked = this.trackedBodies.get(id);
+		if (tracked) {
+			tracked.orbitLine.visible = visible;
+		}
+		return visible;
+	}
+
+	public isOrbitVisible(id: string): boolean {
+		return !this.hiddenOrbits.has(id);
 	}
 
 	public setLabelsVisible(visible: boolean) {

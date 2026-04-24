@@ -14,17 +14,21 @@
 		bodyData,
 		planetData,
 		isolated,
+		orbitVisible = true,
 		onClose,
 		onFocus,
-		onIsolate
+		onIsolate,
+		onToggleOrbit
 	}: {
 		selected: SelectedInfo | null;
 		bodyData: SmallBody | null;
 		planetData: PlanetData | null;
 		isolated: boolean;
+		orbitVisible?: boolean;
 		onClose: () => void;
 		onFocus: (id: string) => void;
 		onIsolate: (enabled: boolean) => void;
+		onToggleOrbit?: (id: string) => void;
 	} = $props();
 
 	const kindLabel = (kind: string) => {
@@ -289,6 +293,11 @@
 				<button class="isolate-btn" class:active={isolated} onclick={() => onIsolate(!isolated)} title="Hide everything except this object">
 					{isolated ? '◉ ISOLATED VIEW' : '○ ISOLATE VIEW'}
 				</button>
+			{#if onToggleOrbit}
+				<button class="orbit-toggle-btn" class:active={orbitVisible} onclick={() => onToggleOrbit(selected.id)} title="Toggle orbit line visibility">
+					{orbitVisible ? '◯ ORBIT ON' : '◯ ORBIT OFF'}
+				</button>
+			{/if}
 			</div>
 		{:else if selected.type === 'planet' && planetData}
 			<div class="panel-body">
@@ -590,4 +599,31 @@
 		color: #ffaa44;
 		box-shadow: 0 0 8px rgba(200, 120, 40, 0.2);
 	}
+
+.orbit-toggle-btn {
+width: 100%;
+padding: 8px;
+margin-top: 6px;
+background: rgba(0, 60, 40, 0.15);
+border: 1px solid rgba(0, 120, 80, 0.3);
+color: #60c0a0;
+font-family: 'JetBrains Mono', monospace;
+font-size: 10px;
+font-weight: 700;
+letter-spacing: 1px;
+border-radius: 4px;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.orbit-toggle-btn:hover {
+background: rgba(0, 100, 60, 0.2);
+border-color: rgba(0, 180, 120, 0.5);
+}
+
+.orbit-toggle-btn.active {
+background: rgba(0, 100, 60, 0.2);
+border-color: rgba(0, 200, 140, 0.5);
+color: #44ddaa;
+}
 </style>
