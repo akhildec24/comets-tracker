@@ -3,7 +3,7 @@
 	import { SolarSystemScene } from '$lib/three/scene';
 	import { lookupNotableBodies, queryCloseApproaches, lookupBody } from '$lib/api/nasa';
 	import { NOTABLE_OBJECTS, PLANETS, INTERSTELLAR_MISSIONS } from '$lib/solarSystem';
-	import { currentJD, jdToDate } from '$lib/orbital';
+	import { currentJD } from '$lib/orbital';
 	import type { SmallBody, CloseApproach, Spacecraft, PlanetData } from '$lib/types';
 	import InfoPanel from '$lib/components/InfoPanel.svelte';
 	import TimelineControl from '$lib/components/TimelineControl.svelte';
@@ -411,11 +411,6 @@
 			<span class="logo-icon">◉</span>
 			<span class="logo-text">NEO TRACKER</span>
 			<span class="logo-sub">SOLAR SYSTEM VISUALIZATION</span>
-			{#if trackedBodies.length > 0}
-				<span class="object-count-badge" title="Tracked objects">
-					{trackedBodies.length} OBJECT{trackedBodies.length !== 1 ? 'S' : ''}
-				</span>
-			{/if}
 		</div>
 		<div class="search-area">
 			<SearchBar onSearch={handleSearch} loading={searchLoading} />
@@ -424,18 +419,6 @@
 			{/if}
 		</div>
 		<div class="status-area">
-			<div class="status-item">
-				<span class="status-label">JD</span>
-				<span class="status-value">{jd.toFixed(2)}</span>
-			</div>
-			<div class="status-item">
-				<span class="status-label">DATE</span>
-				<span class="status-value">{jdToDate(jd).toISOString().slice(0, 10)}</span>
-			</div>
-			<div class="status-item">
-				<span class="status-label">TRACKED</span>
-				<span class="status-value">{trackedBodies.length}</span>
-			</div>
 			<div class="gear-menu">
 				<button
 					class="gear-btn"
@@ -849,20 +832,6 @@
 		margin-left: 4px;
 	}
 
-	.object-count-badge {
-		font-family: 'JetBrains Mono', monospace;
-		font-size: 9px;
-		font-weight: 500;
-		color: #00ccff;
-		background: rgba(0, 100, 150, 0.2);
-		border: 1px solid rgba(0, 150, 200, 0.3);
-		padding: 2px 8px;
-		border-radius: 10px;
-		letter-spacing: 1px;
-		margin-left: 8px;
-		white-space: nowrap;
-	}
-
 	.search-area {
 		flex: 1;
 		max-width: 500px;
@@ -1058,29 +1027,6 @@
 		font-size: 10px;
 		color: #4a8090;
 		white-space: nowrap;
-	}
-
-	.status-item {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		gap: 1px;
-	}
-
-	.status-label {
-		font-size: 8px;
-		color: #4a6080;
-		letter-spacing: 1px;
-	}
-
-	.status-value {
-		font-family: 'Orbitron', sans-serif;
-		font-size: 12px;
-		font-weight: 700;
-		color: #00ccff;
-		font-variant-numeric: tabular-nums;
-		min-width: 90px;
-		text-align: right;
 	}
 
 	.left-sidebar {
