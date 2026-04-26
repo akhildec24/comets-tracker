@@ -848,7 +848,6 @@
 
 	.status-area {
 		display: flex;
-		gap: 16px;
 		flex-shrink: 0;
 		align-items: center;
 	}
@@ -1469,9 +1468,6 @@
 		.left-sidebar {
 			width: calc(100vw - 32px);
 			max-width: 280px;
-		}
-		.status-area {
-			display: none;
 		}
 		.help-card {
 			max-width: calc(100vw - 32px);
