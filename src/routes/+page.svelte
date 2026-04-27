@@ -302,6 +302,10 @@
 				case 'r': case 'R':
 					resetView();
 					break;
+				case 'c': case 'C':
+					compareMode = !compareMode;
+					if (!compareMode) { compareA = null; compareB = null; }
+					break;
 			}
 		};
 		window.addEventListener('keydown', handleKeydown);
@@ -715,6 +719,7 @@
 					<div class="help-row"><span class="help-key">SPACE</span> Play / pause time</div>
 					<div class="help-row"><span class="help-key">1-6</span> Set time speed</div>
 					<div class="help-row"><span class="help-key">R</span> Reset camera view</div>
+					<div class="help-row"><span class="help-key">C</span> Toggle comparison mode</div>
 					<div class="help-row"><span class="help-key">ESC</span> Close panel / settings</div>
 				</div>
 				<div class="help-actions">
