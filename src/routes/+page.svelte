@@ -304,6 +304,10 @@
 					break;
 				case 'c': case 'C':
 					compareMode = !compareMode;
+					if (compareMode && trackedBodies.length >= 2 && !compareA && !compareB) {
+						compareA = trackedBodies[0].id;
+						compareB = trackedBodies[1].id;
+					}
 					if (!compareMode) { compareA = null; compareB = null; }
 					break;
 			}
