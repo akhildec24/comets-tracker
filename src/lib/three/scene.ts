@@ -1635,42 +1635,40 @@ export class SolarSystemScene {
 				tracked.mesh.position.set(x, y, z);
 			}
 
-			// Orient comet tails away from sun, scale by distance
+			// Orient comet tails opposite to velocity (trailing behind motion), scale by distance
 			if (tracked.body.kind === 'comet') {
 				tracked.mesh.lookAt(0, 0, 0);
 				tracked.mesh.rotateX(Math.PI);
 
 				const distFromSun = tracked.mesh.position.length();
-				// Tails are more prominent when closer to sun (inverse scaling)
-				// At 1 AU -> full tail, at 5 AU -> 20% tail, beyond 10 AU -> minimal
 				const tailScale = Math.max(0.1, Math.min(1.0, 1.0 / (distFromSun / 50)));
 
-				const dir = tracked.mesh.position.clone().normalize();
+				// Compute velocity direction
+				const jdNext = this.currentJD + 0.5;
+				const [nx, ny, nz] = orbitalPosition(tracked.body.orbit, jdNext);
+				const vel = new THREE.Vector3(nx - x, ny - y, nz - z).normalize();
+
+				// Tail points opposite to velocity (trailing behind the comet)
+				const tailDir = vel.clone().negate();
 
 				if (tracked.tail) {
 					tracked.tail.position.copy(tracked.mesh.position);
-					tracked.tail.lookAt(tracked.mesh.position.clone().add(dir));
+					tracked.tail.lookAt(tracked.mesh.position.clone().add(tailDir));
 					tracked.tail.scale.setScalar(tailScale);
-					// Fade opacity with distance
 					(tracked.tail.material as THREE.PointsMaterial).opacity = 0.7 * tailScale;
 				}
 				if (tracked.dustTail) {
 					tracked.dustTail.position.copy(tracked.mesh.position);
-					tracked.dustTail.lookAt(tracked.mesh.position.clone().add(dir));
+					tracked.dustTail.lookAt(tracked.mesh.position.clone().add(tailDir));
 					tracked.dustTail.scale.setScalar(tailScale);
 					(tracked.dustTail.material as THREE.PointsMaterial).opacity = 0.5 * tailScale;
 				}
 
 				// Update velocity direction arrow
 				if (tracked.velocityArrow) {
-					const jdNext = this.currentJD + 0.5;
-					const [nx, ny, nz] = orbitalPosition(tracked.body.orbit, jdNext);
-					const vel = new THREE.Vector3(nx - x, ny - y, nz - z).normalize();
 					tracked.velocityArrow.position.copy(tracked.mesh.position);
 					tracked.velocityArrow.setDirection(vel);
-					// Scale arrow with tail scale for visual consistency
 					tracked.velocityArrow.setLength(2 + tailScale * 2, 0.8, 0.5);
-					// Fade arrow visibility when far from sun
 					(tracked.velocityArrow.line as THREE.Line).visible = tailScale > 0.2;
 					(tracked.velocityArrow.cone as THREE.Mesh).visible = tailScale > 0.2;
 				}
