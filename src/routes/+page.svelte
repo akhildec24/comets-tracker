@@ -483,6 +483,23 @@
 								<span class="switch-slider"></span>
 							</label>
 						{/if}
+						{#if trackedBodies.length > 0}
+							<div class="dropdown-divider"></div>
+							<div class="dropdown-section">DATA</div>
+							<div class="dropdown-actions">
+								<button class="dropdown-action-btn" onclick={exportCSV} title="Export tracked objects as CSV">
+									⬇ CSV
+								</button>
+								<button class="dropdown-action-btn" onclick={exportJSON} title="Export tracked objects as JSON">
+									⬇ JSON
+								</button>
+								{#if trackedBodies.length >= 2}
+									<button class="dropdown-action-btn" onclick={() => { compareMode = !compareMode; if (!compareMode) { compareA = null; compareB = null; } }} title="Compare two objects side by side">
+										⇄ COMPARE
+									</button>
+								{/if}
+							</div>
+						{/if}
 					</div>
 				{/if}
 			</div>
@@ -569,21 +586,6 @@
 							⊕ LOAD NOTABLE OBJECTS
 						{/if}
 					</button>
-					{#if trackedBodies.length > 0}
-						<div class="export-buttons">
-							<button class="action-btn small" onclick={exportCSV} title="Export tracked objects as CSV">
-								⬇ CSV
-							</button>
-							<button class="action-btn small" onclick={exportJSON} title="Export tracked objects as JSON">
-								⬇ JSON
-							</button>
-						</div>
-						{#if trackedBodies.length >= 2}
-							<button class="action-btn small" onclick={() => { compareMode = !compareMode; if (!compareMode) { compareA = null; compareB = null; } }} title="Compare two objects side by side">
-								⇄ COMPARE
-							</button>
-						{/if}
-					{/if}
 				</div>
 			{:else if sidebarTab === 'missions'}
 				<div class="planet-list">
@@ -965,6 +967,33 @@
 		height: 1px;
 		background: rgba(60, 80, 120, 0.25);
 		margin: 4px 6px;
+	}
+
+	.dropdown-actions {
+		display: flex;
+		gap: 4px;
+		padding: 4px 8px;
+	}
+
+	.dropdown-action-btn {
+		flex: 1;
+		padding: 6px 4px;
+		background: rgba(0, 100, 150, 0.15);
+		border: 1px solid rgba(0, 150, 200, 0.25);
+		color: #00aadd;
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 1px;
+		border-radius: 4px;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.dropdown-action-btn:hover {
+		background: rgba(0, 150, 200, 0.25);
+		border-color: rgba(0, 200, 255, 0.5);
+		color: #00ccff;
 	}
 
 	.dropdown-item {
