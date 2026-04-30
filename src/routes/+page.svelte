@@ -862,6 +862,7 @@
 		display: flex;
 		flex-shrink: 0;
 		align-items: center;
+		gap: 8px;
 	}
 
 	.refresh-btn {
