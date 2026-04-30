@@ -506,6 +506,7 @@
 			<button class="refresh-btn" onclick={() => refreshData()} title="Refresh from NASA">
 				↻
 			</button>
+                        <a href="/about" class="about-link" title="About this app">ℹ</a>
 			<a
 				class="github-link"
 				href="https://github.com/akhildec24/comets-tracker"
@@ -899,6 +900,29 @@
 	}
 
 	.github-link:hover {
+		background: rgba(0, 150, 200, 0.4);
+		border-color: #00ccff;
+		color: #fff;
+	}
+
+	.about-link {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		background: rgba(0, 150, 200, 0.2);
+		border: 1px solid rgba(0, 150, 200, 0.4);
+		color: #00ccff;
+		border-radius: 4px;
+		cursor: pointer;
+		transition: all 0.2s;
+		flex-shrink: 0;
+		text-decoration: none;
+		font-size: 16px;
+	}
+
+	.about-link:hover {
 		background: rgba(0, 150, 200, 0.4);
 		border-color: #00ccff;
 		color: #fff;
