@@ -48,7 +48,7 @@
 					<p>Track near-Earth objects by designation. View their orbital paths, perihelion dates, and physical properties from NASA JPL SBDB.</p>
 				</div>
 				<div class="objective-card">
-					<span class="obj-icon">�</span>
+<span class="obj-icon">&#9888;</span>
 					<h3>Close Approach Alerts</h3>
 					<p>Monitor upcoming close approaches with distance, velocity, and time data from NASA's CAD API. Urgent approaches are highlighted.</p>
 				</div>
@@ -58,7 +58,7 @@
 					<p>Search any small body by designation (e.g. "1P/Halley", "99942 Apophis"). Objects are fetched live and added to the 3D scene.</p>
 				</div>
 				<div class="objective-card">
-					<span class="obj-icon">🕰️</span>
+<span class="obj-icon">&#9201;</span>
 					<h3>Time Machine</h3>
 					<p>Scrub through time with adjustable speed (0.1x to 365x). Jump to any date with the date picker. Watch orbits evolve over centuries.</p>
 				</div>
@@ -73,7 +73,7 @@
 					<p>Star favorite objects for quick access. Compare two objects side-by-side with orbital element differences. Export data as CSV or JSON.</p>
 				</div>
 				<div class="objective-card">
-					<span class="obj-icon">�</span>
+<span class="obj-icon">&#10022;</span>
 					<h3>Astronomical Visuals</h3>
 					<p>Constellation lines, meteor shower radiants, asteroid belt, Kuiper belt, comet tails with ion and dust components, and a Milky Way star field.</p>
 				</div>
