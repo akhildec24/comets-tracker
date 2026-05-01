@@ -556,7 +556,7 @@ export class SolarSystemScene {
 
 		// Uranus rings (faint, narrow)
 		if (planet.name === 'Uranus') {
-			const ringGeo = new THREE.RingGeometry(planet.radius * 1.4, planet.radius * 2.0, 128, 8);
+			const ringGeo = new THREE.RingGeometry(planet.radius * 1.5, planet.radius * 1.8, 128, 8);
 			const ringTexture = createPlanetTexture('uranusRing');
 			const pos = ringGeo.attributes.position;
 			const uv = ringGeo.attributes.uv;
@@ -564,14 +564,14 @@ export class SolarSystemScene {
 			for (let i = 0; i < pos.count; i++) {
 				v3.fromBufferAttribute(pos, i);
 				const radius = v3.length();
-				const t = (radius - planet.radius * 1.4) / (planet.radius * 0.6);
+				const t = (radius - planet.radius * 1.5) / (planet.radius * 0.3);
 				uv.setXY(i, t, 0.5);
 			}
 			const ringMat = new THREE.MeshBasicMaterial({
 				map: ringTexture,
 				side: THREE.DoubleSide,
 				transparent: true,
-				opacity: 0.5,
+				opacity: 0.35,
 			});
 			const rings = new THREE.Mesh(ringGeo, ringMat);
 			rings.rotation.x = Math.PI / 2;

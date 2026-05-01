@@ -240,13 +240,13 @@ export function createPlanetTexture(type: PlanetTextureType): THREE.CanvasTextur
 					break;
 				}
 				case 'uranus': {
-					// Very smooth pale cyan with faint bands
-					const band = Math.sin(v * Math.PI * 5) * 0.2 + 0.8;
-					const n = fractalNoise(u * 6, v * 10, 16, 3);
-					const c = 130 + band * 30 + n * 10;
-					r = c * 0.55;
-					g = c * 0.82;
-					b = c * 0.92;
+					// Very smooth pale cyan, minimal banding
+					const n = fractalNoise(u * 3, v * 6, 12, 2);
+					const lat = Math.abs(v - 0.5) * 2;
+					const c = 150 + n * 12 + (1 - lat) * 10;
+					r = c * 0.58;
+					g = c * 0.85;
+					b = c * 0.93;
 					break;
 				}
 				case 'neptune': {
