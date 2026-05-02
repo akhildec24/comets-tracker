@@ -10,6 +10,7 @@
 	import SearchBar from '$lib/components/SearchBar.svelte';
 	import CloseApproachList from '$lib/components/CloseApproachList.svelte';
 	import ObjectList from '$lib/components/ObjectList.svelte';
+	import MiniMap from '$lib/components/MiniMap.svelte';
 
 	let sceneInstance: SolarSystemScene | null = null;
 	let container: HTMLDivElement;
@@ -37,6 +38,7 @@
 	let showDormant = $state(true);
 	let showLabels = $state(true);
 	let showTrails = $state(false);
+	let showPerfOverlay = $state(false);
 	let logScale = $state(false);
 	let showSpacecraft = $state(false);
 	let spacecraftLoaded = $state(false);
@@ -464,6 +466,11 @@
 							/>
 							<span class="switch-slider"></span>
 						</label>
+						<label class="dropdown-item" title="Show FPS, draw calls, and object count overlay">
+							<span class="dropdown-label">PERF</span>
+							<input type="checkbox" bind:checked={showPerfOverlay} />
+							<span class="switch-slider"></span>
+						</label>
 						<div class="dropdown-divider"></div>
 						<div class="dropdown-section">OBJECTS</div>
 						<label class="dropdown-item" title="Show/hide tracked comets">
@@ -760,6 +767,25 @@
 		onPauseToggle={handlePauseToggle}
 		onSpeedChange={handleSpeedChange}
 	/>
+
+	<div class="minimap-wrapper">
+		<div class="minimap-label">TOP-DOWN VIEW</div>
+		<MiniMap getData={() => sceneInstance?.getMiniMapData() ?? []} selectedId={selected?.id} />
+	</div>
+
+	{#if showPerfOverlay}
+		<div class="perf-overlay">
+			{#key Math.floor(jd * 100)}
+				{@const perf = sceneInstance?.getPerfData()}
+				{#if perf}
+					<div class="perf-row"><span>FPS</span><span class="perf-val">{perf.fps}</span></div>
+					<div class="perf-row"><span>DRAW</span><span class="perf-val">{perf.drawCalls}</span></div>
+					<div class="perf-row"><span>TRIS</span><span class="perf-val">{(perf.triangles / 1000).toFixed(1)}k</span></div>
+					<div class="perf-row"><span>OBJ</span><span class="perf-val">{perf.objects}</span></div>
+				{/if}
+			{/key}
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -1542,6 +1568,61 @@
 		.info-panel {
 			width: calc(100vw - 32px);
 			max-width: 320px;
+		}
+	}
+
+	.minimap-wrapper {
+		position: absolute;
+		bottom: 80px;
+		right: 16px;
+		background: rgba(5, 12, 25, 0.9);
+		border: 1px solid rgba(0, 150, 200, 0.25);
+		border-radius: 4px;
+		padding: 4px;
+		backdrop-filter: blur(10px);
+		z-index: 5;
+	}
+
+	.minimap-label {
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 7px;
+		color: #4a6080;
+		letter-spacing: 1px;
+		text-align: center;
+		margin-bottom: 2px;
+	}
+
+	.perf-overlay {
+		position: absolute;
+		top: 60px;
+		right: 16px;
+		background: rgba(5, 12, 25, 0.9);
+		border: 1px solid rgba(0, 150, 200, 0.25);
+		border-radius: 4px;
+		padding: 8px 10px;
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 10px;
+		z-index: 5;
+		min-width: 90px;
+	}
+
+	.perf-row {
+		display: flex;
+		justify-content: space-between;
+		gap: 12px;
+		color: #6080a0;
+		line-height: 1.6;
+	}
+
+	.perf-val {
+		color: #00ccff;
+		font-weight: 700;
+		text-align: right;
+	}
+
+	@media (max-width: 768px) {
+		.minimap-wrapper {
+			display: none;
 		}
 	}
 </style>

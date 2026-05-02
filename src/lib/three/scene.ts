@@ -1362,6 +1362,36 @@ export class SolarSystemScene {
 		this.followTarget = null;
 	}
 
+	public getMiniMapData(): { x: number; z: number; name: string; type: string; color: string }[] {
+		const items: { x: number; z: number; name: string; type: string; color: string }[] = [];
+		// Sun
+		items.push({ x: 0, z: 0, name: 'Sun', type: 'sun', color: '#ffaa44' });
+		// Planets
+		for (const [name, mesh] of this.planetMeshes) {
+			items.push({ x: mesh.position.x, z: mesh.position.z, name, type: 'planet', color: '#4488ff' });
+		}
+		// Small bodies
+		for (const [, tracked] of this.trackedBodies) {
+			const color = tracked.body.kind === 'comet' ? '#00ffff' : '#ff8844';
+			items.push({ x: tracked.mesh.position.x, z: tracked.mesh.position.z, name: tracked.body.name || tracked.body.des, type: tracked.body.kind, color });
+		}
+		// Spacecraft
+		for (const [id, entry] of this.spacecraft) {
+			items.push({ x: entry.mesh.position.x, z: entry.mesh.position.z, name: id, type: 'spacecraft', color: '#88ff88' });
+		}
+		return items;
+	}
+
+	public getPerfData(): { fps: number; drawCalls: number; triangles: number; objects: number } {
+		const info = this.renderer.info;
+		return {
+			fps: this.currentFps,
+			drawCalls: info.render.calls,
+			triangles: info.render.triangles,
+			objects: this.trackedBodies.size + this.planetMeshes.size + this.spacecraft.size,
+		};
+	}
+
 	public setIsolatedView(enabled: boolean, id?: string) {
 		this.isolated = enabled;
 		if (enabled && id) {
@@ -1827,6 +1857,10 @@ export class SolarSystemScene {
 	private clock = new THREE.Clock();
 	private lastTimeUpdate = 0;
 	private frameDelta = 0;
+	private fpsAccum = 0;
+	private fpsFrames = 0;
+	private fpsLastUpdate = 0;
+	private currentFps = 0;
 
 	private animate = () => {
 		this.animationId = requestAnimationFrame(this.animate);
@@ -1834,9 +1868,19 @@ export class SolarSystemScene {
 		const delta = this.clock.getDelta();
 		this.frameDelta = delta;
 
+		// FPS tracking
+		this.fpsAccum += delta;
+		this.fpsFrames++;
+		const now = performance.now();
+		if (now - this.fpsLastUpdate > 500) {
+			this.currentFps = Math.round(this.fpsFrames / this.fpsAccum);
+			this.fpsAccum = 0;
+			this.fpsFrames = 0;
+			this.fpsLastUpdate = now;
+		}
+
 		if (!this.paused) {
 			this.currentJD += this.timeSpeed * delta;
-			const now = performance.now();
 			if (now - this.lastTimeUpdate > 250) {
 				this.onTimeUpdate(this.currentJD);
 				this.lastTimeUpdate = now;
