@@ -320,6 +320,42 @@
 		loadNotableObjects();
 		loadCloseApproaches();
 
+		// Restore state from URL params
+		const params = new URLSearchParams(window.location.search);
+		const camParam = params.get('cam');
+		const jdParam = params.get('jd');
+		const idsParam = params.get('ids');
+
+		if (jdParam) {
+			const parsedJd = parseFloat(jdParam);
+			if (!isNaN(parsedJd)) {
+				jd = parsedJd;
+				sceneInstance.setTime(parsedJd);
+			}
+		}
+
+		if (idsParam) {
+			const ids = idsParam.split(',').filter(Boolean);
+			for (const id of ids) {
+				lookupBody(id).then(body => {
+					if (body) {
+						sceneInstance?.addSmallBody(body);
+						trackedBodies = [...trackedBodies, body];
+					}
+				});
+			}
+		}
+
+		if (camParam) {
+			const parts = camParam.split(',').map(Number);
+			if (parts.length === 6 && parts.every(n => !isNaN(n))) {
+				sceneInstance.setCameraState({
+					px: parts[0], py: parts[1], pz: parts[2],
+					tx: parts[3], ty: parts[4], tz: parts[5]
+				});
+			}
+		}
+
 		// Periodic refresh every 10 minutes
 		refreshTimer = setInterval(() => refreshData(), 10 * 60 * 1000);
 
@@ -405,6 +441,28 @@
 		a.click();
 		URL.revokeObjectURL(url);
 	};
+
+	let shareStatus = $state('');
+
+	const shareLink = async () => {
+		const cam = sceneInstance?.getCameraState();
+		const time = sceneInstance?.getTime() ?? jd;
+		const ids = sceneInstance?.getTrackedIds() ?? [];
+		const params = new URLSearchParams();
+		if (cam) {
+			params.set('cam', `${cam.px},${cam.py},${cam.pz},${cam.tx},${cam.ty},${cam.tz}`);
+		}
+		params.set('jd', time.toFixed(2));
+		if (ids.length > 0) params.set('ids', ids.join(','));
+		const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+		try {
+			await navigator.clipboard.writeText(url);
+			shareStatus = 'Link copied!';
+		} catch {
+			shareStatus = 'Copy failed';
+		}
+		setTimeout(() => shareStatus = '', 2000);
+	};
 </script>
 
 <div class="app">
@@ -414,6 +472,10 @@
 		<div class="loading-bar">
 			<div class="loading-bar-fill"></div>
 		</div>
+	{/if}
+
+	{#if shareStatus}
+		<div class="share-toast">{shareStatus}</div>
 	{/if}
 
 	<div class="top-bar">
@@ -505,6 +567,9 @@
 										⇄ COMPARE
 									</button>
 								{/if}
+								<button class="dropdown-action-btn" onclick={shareLink} title="Copy share link with current view, time, and tracked objects">
+									🔗 SHARE
+								</button>
 							</div>
 						{/if}
 					</div>
@@ -819,6 +884,22 @@
 		background: linear-gradient(90deg, transparent, #00ccff, transparent);
 		background-size: 200% 100%;
 		animation: loading-slide 1.2s ease-in-out infinite;
+	}
+
+	.share-toast {
+		position: absolute;
+		top: 60px;
+		left: 50%;
+		transform: translateX(-50%);
+		background: rgba(0, 100, 150, 0.9);
+		border: 1px solid rgba(0, 200, 255, 0.5);
+		color: #00ccff;
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 11px;
+		padding: 8px 16px;
+		border-radius: 4px;
+		z-index: 1000;
+		letter-spacing: 1px;
 	}
 
 	@keyframes loading-slide {

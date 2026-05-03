@@ -1520,6 +1520,27 @@ export class SolarSystemScene {
 		this.currentJD = jd;
 	}
 
+	public getCameraState(): { px: number; py: number; pz: number; tx: number; ty: number; tz: number } {
+		return {
+			px: Math.round(this.camera.position.x * 10) / 10,
+			py: Math.round(this.camera.position.y * 10) / 10,
+			pz: Math.round(this.camera.position.z * 10) / 10,
+			tx: Math.round(this.controls.target.x * 10) / 10,
+			ty: Math.round(this.controls.target.y * 10) / 10,
+			tz: Math.round(this.controls.target.z * 10) / 10,
+		};
+	}
+
+	public setCameraState(state: { px: number; py: number; pz: number; tx: number; ty: number; tz: number }) {
+		this.camera.position.set(state.px, state.py, state.pz);
+		this.controls.target.set(state.tx, state.ty, state.tz);
+		this.controls.update();
+	}
+
+	public getTrackedIds(): string[] {
+		return Array.from(this.trackedBodies.keys());
+	}
+
 	public getTime(): number {
 		return this.currentJD;
 	}
