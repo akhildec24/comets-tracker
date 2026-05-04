@@ -708,6 +708,7 @@
 		planetData={selectedPlanet}
 		{isolated}
 		{orbitVisible}
+		currentJd={jd}
 		onClose={() => { selected = null; selectedBody = null; selectedPlanet = null; if (isolated) { isolated = false; sceneInstance?.setIsolatedView(false); } cameraFollowing = false; }}
 		onFocus={handleFocus}
 		onIsolate={handleIsolate}

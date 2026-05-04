@@ -2,6 +2,7 @@
 	import type { SmallBody, PlanetData } from '$lib/types';
 	import { jdToDate, orbitalPosition } from '$lib/orbital';
 	import { currentJD } from '$lib/orbital';
+	import EphemerisTable from './EphemerisTable.svelte';
 
 	interface SelectedInfo {
 		type: string;
@@ -15,6 +16,7 @@
 		planetData,
 		isolated,
 		orbitVisible = true,
+		currentJd = 0,
 		onClose,
 		onFocus,
 		onIsolate,
@@ -25,6 +27,7 @@
 		planetData: PlanetData | null;
 		isolated: boolean;
 		orbitVisible?: boolean;
+		currentJd?: number;
 		onClose: () => void;
 		onFocus: (id: string) => void;
 		onIsolate: (enabled: boolean) => void;
@@ -285,6 +288,10 @@
 						<span class="value">{perihelionInfo.past ? `${perihelionInfo.days} days ago` : `in ${perihelionInfo.days} days`}</span>
 					</div>
 				</div>
+			{/if}
+
+			{#if bodyData}
+				<EphemerisTable body={bodyData} currentJd={currentJd} />
 			{/if}
 
 				<button class="focus-btn" onclick={() => onFocus(selected.id)} title="Move camera to this object">
