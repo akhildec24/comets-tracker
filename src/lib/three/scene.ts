@@ -59,6 +59,8 @@ export class SolarSystemScene {
 	private spacecraft: Map<string, TrackedSpacecraft> = new Map();
 	private spacecraftVisible = true;
 	private hiddenOrbits: Set<string> = new Set();
+	private approachLines: THREE.Line[] = [];
+	private approachMarkers: THREE.Mesh[] = [];
 	private composer: EffectComposer | null = null;
 	private bloomPass: UnrealBloomPass | null = null;
 
@@ -1539,6 +1541,74 @@ export class SolarSystemScene {
 
 	public getTrackedIds(): string[] {
 		return Array.from(this.trackedBodies.keys());
+	}
+
+	public visualizeCloseApproaches(approaches: { des: string; date: string; dist: number }[]) {
+		// Clear existing
+		for (const line of this.approachLines) this.scene.remove(line);
+		for (const marker of this.approachMarkers) this.scene.remove(marker);
+		this.approachLines = [];
+		this.approachMarkers = [];
+
+		const earth = this.planetMeshes.get('Earth');
+		if (!earth) return;
+
+		for (const approach of approaches) {
+			const tracked = this.trackedBodies.get(approach.des);
+			if (!tracked) continue;
+
+			const approachJd = dateToJD(new Date(approach.date));
+			if (isNaN(approachJd)) continue;
+
+			// Get positions at approach time
+			const [bx, by, bz] = orbitalPosition(tracked.body.orbit, approachJd);
+			const earthPos = earth.position.clone();
+
+			// Scale body position if log scale
+			let bodyPos: THREE.Vector3;
+			if (this.logScale) {
+				const r = Math.sqrt(bx * bx + by * by + bz * bz);
+				if (r > 0) {
+					const scale = this.scaleDistance(r) / r;
+					bodyPos = new THREE.Vector3(bx * scale, by * scale, bz * scale);
+				} else {
+					bodyPos = new THREE.Vector3(bx, by, bz);
+				}
+			} else {
+				bodyPos = new THREE.Vector3(bx, by, bz);
+			}
+
+			// Draw line from body position to Earth at approach time
+			const lineGeo = new THREE.BufferGeometry().setFromPoints([bodyPos, earthPos]);
+			const lineMat = new THREE.LineBasicMaterial({
+				color: 0xff4466,
+				transparent: true,
+				opacity: 0.6,
+			});
+			const line = new THREE.Line(lineGeo, lineMat);
+			this.scene.add(line);
+			this.approachLines.push(line);
+
+			// Marker at closest approach point (midpoint weighted by distance)
+			const approachPoint = bodyPos.clone().lerp(earthPos, 0.5);
+			const markerGeo = new THREE.SphereGeometry(0.8, 16, 8);
+			const markerMat = new THREE.MeshBasicMaterial({
+				color: 0xff4466,
+				transparent: true,
+				opacity: 0.8,
+			});
+			const marker = new THREE.Mesh(markerGeo, markerMat);
+			marker.position.copy(approachPoint);
+			this.scene.add(marker);
+			this.approachMarkers.push(marker);
+		}
+	}
+
+	public clearCloseApproaches() {
+		for (const line of this.approachLines) this.scene.remove(line);
+		for (const marker of this.approachMarkers) this.scene.remove(marker);
+		this.approachLines = [];
+		this.approachMarkers = [];
 	}
 
 	public getTime(): number {

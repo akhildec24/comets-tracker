@@ -39,6 +39,7 @@
 	let showLabels = $state(true);
 	let showTrails = $state(false);
 	let showPerfOverlay = $state(false);
+	let showApproaches = $state(false);
 	let logScale = $state(false);
 	let showSpacecraft = $state(false);
 	let spacecraftLoaded = $state(false);
@@ -531,6 +532,11 @@
 						<label class="dropdown-item" title="Show FPS, draw calls, and object count overlay">
 							<span class="dropdown-label">PERF</span>
 							<input type="checkbox" bind:checked={showPerfOverlay} />
+							<span class="switch-slider"></span>
+						</label>
+						<label class="dropdown-item" title="Visualize close approach flyby trajectories to Earth">
+							<span class="dropdown-label">FLYBYS</span>
+							<input type="checkbox" bind:checked={showApproaches} onchange={() => { if (showApproaches) { sceneInstance?.visualizeCloseApproaches(approaches.filter(a => trackedBodies.some(b => b.des === a.des))); } else { sceneInstance?.clearCloseApproaches(); } }} />
 							<span class="switch-slider"></span>
 						</label>
 						<div class="dropdown-divider"></div>
