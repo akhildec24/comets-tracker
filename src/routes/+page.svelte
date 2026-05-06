@@ -40,6 +40,8 @@
 	let showTrails = $state(false);
 	let showPerfOverlay = $state(false);
 	let showApproaches = $state(false);
+	let showISS = $state(false);
+	let issPollTimer: ReturnType<typeof setInterval> | null = null;
 	let logScale = $state(false);
 	let showSpacecraft = $state(false);
 	let spacecraftLoaded = $state(false);
@@ -364,6 +366,7 @@
 			window.removeEventListener('click', handleClickOutside);
 			window.removeEventListener('keydown', handleKeydown);
 			if (refreshTimer) clearInterval(refreshTimer);
+			if (issPollTimer) clearInterval(issPollTimer);
 			sceneInstance?.dispose();
 		};
 	});
@@ -464,6 +467,27 @@
 		}
 		setTimeout(() => shareStatus = '', 2000);
 	};
+
+	const fetchISS = async () => {
+		try {
+			const res = await fetch('https://api.wheretheiss.at/v1/satellites/25544');
+			if (!res.ok) return;
+			const data = await res.json();
+			sceneInstance?.updateISSPosition(data.latitude, data.longitude, data.altitude * 1000);
+		} catch {
+			// silently fail - ISS API may be rate limited
+		}
+	};
+
+	const toggleISS = (enabled: boolean) => {
+		sceneInstance?.setISSVisible(enabled);
+		if (enabled) {
+			fetchISS();
+			issPollTimer = setInterval(fetchISS, 5000);
+		} else {
+			if (issPollTimer) { clearInterval(issPollTimer); issPollTimer = null; }
+		}
+	};
 </script>
 
 <div class="app">
@@ -537,6 +561,11 @@
 						<label class="dropdown-item" title="Visualize close approach flyby trajectories to Earth">
 							<span class="dropdown-label">FLYBYS</span>
 							<input type="checkbox" bind:checked={showApproaches} onchange={() => { if (showApproaches) { sceneInstance?.visualizeCloseApproaches(approaches.filter(a => trackedBodies.some(b => b.des === a.des))); } else { sceneInstance?.clearCloseApproaches(); } }} />
+							<span class="switch-slider"></span>
+						</label>
+						<label class="dropdown-item" title="Track the International Space Station in real-time">
+							<span class="dropdown-label">ISS LIVE</span>
+							<input type="checkbox" bind:checked={showISS} onchange={() => toggleISS(showISS)} />
 							<span class="switch-slider"></span>
 						</label>
 						<div class="dropdown-divider"></div>

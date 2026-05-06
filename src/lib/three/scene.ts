@@ -51,6 +51,8 @@ export class SolarSystemScene {
 	private constellationLines: THREE.LineSegments;
 	private meteorRadiants: THREE.Points | null = null;
 	private moon: THREE.Mesh | null = null;
+	private issMesh: THREE.Mesh | null = null;
+	private issVisible = false;
 	private asteroidBelt: THREE.Points | null = null;
 	private kuiperBelt: THREE.Points | null = null;
 	private atmospheres: Map<string, THREE.Mesh> = new Map();
@@ -1609,6 +1611,51 @@ export class SolarSystemScene {
 		for (const marker of this.approachMarkers) this.scene.remove(marker);
 		this.approachLines = [];
 		this.approachMarkers = [];
+	}
+
+	public setISSVisible(visible: boolean) {
+		this.issVisible = visible;
+		if (visible && !this.issMesh) {
+			// Create ISS marker - small golden satellite
+			const geo = new THREE.OctahedronGeometry(0.6, 0);
+			const mat = new THREE.MeshStandardMaterial({
+				color: 0xffcc44,
+				emissive: 0xff8800,
+				emissiveIntensity: 0.5,
+				metalness: 0.8,
+				roughness: 0.3,
+			});
+			this.issMesh = new THREE.Mesh(geo, mat);
+			this.scene.add(this.issMesh);
+		}
+		if (this.issMesh) {
+			this.issMesh.visible = visible;
+		}
+	}
+
+	public updateISSPosition(latitude: number, longitude: number, altitudeKm: number) {
+		if (!this.issMesh || !this.issVisible) return;
+
+		const earth = this.planetMeshes.get('Earth');
+		if (!earth) return;
+
+		// Earth display radius
+		const earthData = PLANETS.find(p => p.name === 'Earth');
+		if (!earthData) return;
+		const earthRadius = earthData.radius;
+		const altScale = (altitudeKm / 6371) * earthRadius; // altitude in scene units
+		const totalRadius = earthRadius + altScale;
+
+		// Convert lat/lon to 3D position (relative to Earth center)
+		const latRad = latitude * Math.PI / 180;
+		const lonRad = longitude * Math.PI / 180;
+
+		const x = totalRadius * Math.cos(latRad) * Math.cos(lonRad);
+		const y = totalRadius * Math.sin(latRad);
+		const z = totalRadius * Math.cos(latRad) * Math.sin(lonRad);
+
+		// Position relative to Earth's world position
+		this.issMesh.position.copy(earth.position).add(new THREE.Vector3(x, y, z));
 	}
 
 	public getTime(): number {
