@@ -1030,27 +1030,58 @@ export class SolarSystemScene {
 		}
 	}
 
+	private createIrregularShape(baseSize: number, seedId: string): THREE.BufferGeometry {
+		// Create a deformed icosahedron for asteroid-like irregular shape
+		const geo = new THREE.IcosahedronGeometry(baseSize, 2);
+		const positions = geo.attributes.position;
+		// Simple hash from seed string for deterministic deformation
+		let hash = 0;
+		for (let i = 0; i < seedId.length; i++) {
+			hash = ((hash << 5) - hash) + seedId.charCodeAt(i);
+			hash |= 0;
+		}
+		const rng = (n: number) => {
+			const x = Math.sin(hash + n * 9999) * 43758.5453;
+			return x - Math.floor(x);
+		};
+		for (let i = 0; i < positions.count; i++) {
+			const x = positions.getX(i);
+			const y = positions.getY(i);
+			const z = positions.getZ(i);
+			const dist = Math.sqrt(x * x + y * y + z * z);
+			if (dist === 0) continue;
+			// Deform by 15-30% based on direction
+			const noise = 0.75 + rng(i) * 0.5;
+			positions.setXYZ(i, x * noise, y * noise, z * noise);
+		}
+		geo.computeVertexNormals();
+		return geo;
+	}
+
 	public addSmallBody(body: SmallBody) {
 		if (this.trackedBodies.has(body.id)) return;
 
 		const isComet = body.kind === 'comet';
-		// Size based on absolute magnitude if available (brighter = bigger)
-		// Comets are tiny vs planets — keep well below Mercury (0.8 scene units)
 		const baseSize = isComet ? 0.15 : 0.25;
 		const hMag = body.h;
 		let size = baseSize;
 		if (hMag !== undefined) {
-			// H=3 -> large comet, H=15 -> small. Range: 0.5x to 1.8x base
 			size = baseSize * Math.max(0.5, Math.min(1.8, 1 + (12 - hMag) / 24));
 		}
 		const color = isComet ? 0x00ffff : 0xff8844;
 
-		// Body mesh
-		const geo = new THREE.SphereGeometry(size, 16, 16);
+		// Body mesh - irregular shape for asteroids, sphere for comets
+		let geo: THREE.BufferGeometry;
+		if (!isComet) {
+			geo = this.createIrregularShape(size, body.id);
+		} else {
+			geo = new THREE.SphereGeometry(size, 16, 16);
+		}
 		const mat = new THREE.MeshPhongMaterial({
 			color,
 			emissive: color,
 			emissiveIntensity: 0.5,
+			flatShading: !isComet,
 		});
 		const mesh = new THREE.Mesh(geo, mat);
 		mesh.userData = { type: body.kind, id: body.id, name: body.name || body.des };
