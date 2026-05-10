@@ -41,6 +41,7 @@
 	let showPerfOverlay = $state(false);
 	let showApproaches = $state(false);
 	let showISS = $state(false);
+	let showMiniMap = $state(false);
 	let issPollTimer: ReturnType<typeof setInterval> | null = null;
 	let logScale = $state(false);
 	let showSpacecraft = $state(false);
@@ -568,6 +569,11 @@
 							<input type="checkbox" bind:checked={showISS} onchange={() => toggleISS(showISS)} />
 							<span class="switch-slider"></span>
 						</label>
+						<label class="dropdown-item" title="Show top-down mini-map with camera position indicator">
+							<span class="dropdown-label">MINIMAP</span>
+							<input type="checkbox" bind:checked={showMiniMap} />
+							<span class="switch-slider"></span>
+						</label>
 						<div class="dropdown-divider"></div>
 						<div class="dropdown-section">OBJECTS</div>
 						<label class="dropdown-item" title="Show/hide tracked comets">
@@ -869,10 +875,12 @@
 		onSpeedChange={handleSpeedChange}
 	/>
 
-	<div class="minimap-wrapper">
-		<div class="minimap-label">TOP-DOWN VIEW</div>
-		<MiniMap getData={() => sceneInstance?.getMiniMapData() ?? []} selectedId={selected?.id} />
-	</div>
+	{#if showMiniMap}
+		<div class="minimap-wrapper">
+			<div class="minimap-label">TOP-DOWN VIEW</div>
+			<MiniMap getData={() => sceneInstance?.getMiniMapData() ?? []} selectedId={selected?.id} getCameraState={() => sceneInstance?.getCameraState() ?? null} />
+		</div>
+	{/if}
 
 	{#if showPerfOverlay}
 		<div class="perf-overlay">
