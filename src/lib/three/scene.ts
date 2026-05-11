@@ -1572,6 +1572,18 @@ export class SolarSystemScene {
 		this.controls.update();
 	}
 
+	public setCameraTarget(x: number, y: number, z: number) {
+		const offset = this.camera.position.clone().sub(this.controls.target);
+		this.cameraTween = {
+			from: this.camera.position.clone(),
+			to: new THREE.Vector3(x + offset.x, y + offset.y, z + offset.z),
+			targetFrom: this.controls.target.clone(),
+			targetTo: new THREE.Vector3(x, y, z),
+			start: performance.now(),
+			duration: 800,
+		};
+	}
+
 	public getTrackedIds(): string[] {
 		return Array.from(this.trackedBodies.keys());
 	}

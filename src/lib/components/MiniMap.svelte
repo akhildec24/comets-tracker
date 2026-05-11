@@ -17,11 +17,13 @@
 	let {
 		getData,
 		selectedId = null,
-		getCameraState = null
+		getCameraState = null,
+		onNavigate = null
 	}: {
 		getData: () => MiniMapItem[];
 		selectedId?: string | null;
 		getCameraState?: (() => CameraState | null) | null;
+		onNavigate?: ((x: number, z: number) => void) | null;
 	} = $props();
 
 	let canvas: HTMLCanvasElement;
@@ -163,12 +165,28 @@
 	});
 </script>
 
-<canvas bind:this={canvas} width={SIZE} height={SIZE} class="minimap-canvas" title="Top-down view — green triangle shows camera, crosshair shows look target"></canvas>
+<canvas
+	bind:this={canvas}
+	width={SIZE}
+	height={SIZE}
+	class="minimap-canvas"
+	title="Top-down view — green triangle shows camera, crosshair shows look target. Click to navigate."
+	onclick={(e) => {
+		if (!onNavigate) return;
+		const rect = canvas.getBoundingClientRect();
+		const cx = e.clientX - rect.left;
+		const cy = e.clientY - rect.top;
+		const scale = (SIZE / 2 - 6) / MAX_RANGE;
+		const x = (cx - SIZE / 2) / scale;
+		const z = (cy - SIZE / 2) / scale;
+		onNavigate(x, z);
+	}}
+></canvas>
 
 <style>
 	.minimap-canvas {
 		display: block;
 		border-radius: 4px;
-		cursor: default;
+		cursor: crosshair;
 	}
 </style>

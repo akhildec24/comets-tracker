@@ -878,7 +878,7 @@
 	{#if showMiniMap}
 		<div class="minimap-wrapper">
 			<div class="minimap-label">TOP-DOWN VIEW</div>
-			<MiniMap getData={() => sceneInstance?.getMiniMapData() ?? []} selectedId={selected?.id} getCameraState={() => sceneInstance?.getCameraState() ?? null} />
+			<MiniMap getData={() => sceneInstance?.getMiniMapData() ?? []} selectedId={selected?.id} getCameraState={() => sceneInstance?.getCameraState() ?? null} onNavigate={(x, z) => sceneInstance?.setCameraTarget(x, 0, z)} />
 		</div>
 	{/if}
 
