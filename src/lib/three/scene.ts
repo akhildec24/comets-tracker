@@ -1192,15 +1192,24 @@ export class SolarSystemScene {
 		const tracked = this.trackedBodies.get(id);
 		if (!tracked) return;
 		this.scene.remove(tracked.mesh);
+		tracked.mesh.geometry.dispose();
+		(tracked.mesh.material as THREE.Material).dispose();
 		this.scene.remove(tracked.orbitLine);
+		tracked.orbitLine.geometry.dispose();
+		(tracked.orbitLine.material as THREE.Material).dispose();
 		if (tracked.tail) {
 			this.scene.remove(tracked.tail);
+			tracked.tail.geometry.dispose();
+			(tracked.tail.material as THREE.Material).dispose();
 		}
 		if (tracked.dustTail) {
 			this.scene.remove(tracked.dustTail);
+			tracked.dustTail.geometry.dispose();
+			(tracked.dustTail.material as THREE.Material).dispose();
 		}
 		if (tracked.velocityArrow) {
 			this.scene.remove(tracked.velocityArrow);
+			tracked.velocityArrow.dispose();
 		}
 		const label = this.labels.get(id);
 		if (label) {
@@ -1650,8 +1659,16 @@ export class SolarSystemScene {
 	}
 
 	public clearCloseApproaches() {
-		for (const line of this.approachLines) this.scene.remove(line);
-		for (const marker of this.approachMarkers) this.scene.remove(marker);
+		for (const line of this.approachLines) {
+			this.scene.remove(line);
+			line.geometry.dispose();
+			(line.material as THREE.Material).dispose();
+		}
+		for (const marker of this.approachMarkers) {
+			this.scene.remove(marker);
+			marker.geometry.dispose();
+			(marker.material as THREE.Material).dispose();
+		}
 		this.approachLines = [];
 		this.approachMarkers = [];
 	}
@@ -2049,6 +2066,9 @@ export class SolarSystemScene {
 		const delta = this.clock.getDelta();
 		this.frameDelta = delta;
 
+		// Reset render info for accurate per-frame stats
+		this.renderer.info.reset();
+
 		// FPS tracking
 		this.fpsAccum += delta;
 		this.fpsFrames++;
@@ -2147,6 +2167,134 @@ export class SolarSystemScene {
 		window.removeEventListener('resize', this.onResize);
 		this.renderer.domElement.removeEventListener('click', this.onClick);
 		this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove);
+
+		// Dispose all tracked bodies
+		this.clearSmallBodies();
+
+		// Dispose spacecraft
+		for (const [, entry] of this.spacecraft) {
+			this.scene.remove(entry.mesh);
+			entry.mesh.geometry.dispose();
+			(entry.mesh.material as THREE.Material).dispose();
+			this.scene.remove(entry.trajectoryLine);
+			entry.trajectoryLine.geometry.dispose();
+			(entry.trajectoryLine.material as THREE.Material).dispose();
+			const label = this.labels.get(entry.spacecraft.id);
+			if (label) label.remove();
+		}
+		this.spacecraft.clear();
+
+		// Dispose planets and orbits
+		for (const [, lod] of this.planetMeshes) {
+			this.scene.remove(lod);
+			lod.traverse((child) => {
+				if (child instanceof THREE.Mesh) {
+					child.geometry?.dispose();
+					if (Array.isArray(child.material)) {
+						child.material.forEach(m => m.dispose());
+					} else {
+						child.material?.dispose();
+					}
+				}
+			});
+		}
+		this.planetMeshes.clear();
+
+		for (const [, orbit] of this.planetOrbits) {
+			this.scene.remove(orbit);
+			orbit.geometry.dispose();
+			(orbit.material as THREE.Material).dispose();
+		}
+		this.planetOrbits.clear();
+
+		// Dispose atmospheres
+		for (const [, mesh] of this.atmospheres) {
+			this.scene.remove(mesh);
+			mesh.geometry.dispose();
+			(mesh.material as THREE.Material).dispose();
+		}
+		this.atmospheres.clear();
+
+		// Dispose Galilean moons
+		for (const gm of this.galileanMoons) {
+			this.scene.remove(gm.mesh);
+			gm.mesh.geometry.dispose();
+			(gm.mesh.material as THREE.Material).dispose();
+		}
+		this.galileanMoons = [];
+
+		// Dispose belts
+		if (this.asteroidBelt) {
+			this.scene.remove(this.asteroidBelt);
+			this.asteroidBelt.geometry.dispose();
+			(this.asteroidBelt.material as THREE.Material).dispose();
+			this.asteroidBelt = null;
+		}
+		if (this.kuiperBelt) {
+			this.scene.remove(this.kuiperBelt);
+			this.kuiperBelt.geometry.dispose();
+			(this.kuiperBelt.material as THREE.Material).dispose();
+			this.kuiperBelt = null;
+		}
+
+		// Dispose moon
+		if (this.moon) {
+			this.scene.remove(this.moon);
+			this.moon.geometry.dispose();
+			(this.moon.material as THREE.Material).dispose();
+			this.moon = null;
+		}
+
+		// Dispose ISS mesh
+		if (this.issMesh) {
+			this.scene.remove(this.issMesh);
+			this.issMesh.geometry.dispose();
+			(this.issMesh.material as THREE.Material).dispose();
+			this.issMesh = null;
+		}
+
+		// Dispose approach visualization
+		this.clearCloseApproaches();
+
+		// Dispose earth clouds
+		if (this.earthClouds) {
+			this.earthClouds.geometry.dispose();
+			(this.earthClouds.material as THREE.Material).dispose();
+			this.earthClouds = null;
+		}
+
+		// Dispose starfield, constellations, meteor radiants
+		this.starField.geometry.dispose();
+		(this.starField.material as THREE.Material).dispose();
+		this.constellationLines.geometry.dispose();
+		(this.constellationLines.material as THREE.Material).dispose();
+		if (this.meteorRadiants) {
+			this.meteorRadiants.geometry.dispose();
+			(this.meteorRadiants.material as THREE.Material).dispose();
+		}
+
+		// Dispose sun and glow
+		this.sun.geometry.dispose();
+		(this.sun.material as THREE.Material).dispose();
+		this.sunGlow.geometry.dispose();
+		(this.sunGlow.material as THREE.Material).dispose();
+
+		// Dispose trails
+		for (const [, trail] of this.trails) {
+			this.scene.remove(trail);
+			trail.geometry.dispose();
+			(trail.material as THREE.Material).dispose();
+		}
+		this.trails.clear();
+		this.trailPositions.clear();
+
+		// Clear labels
+		for (const [, label] of this.labels) {
+			label.remove();
+		}
+		this.labels.clear();
+
+		// Dispose post-processing and renderer
 		this.composer?.dispose();
 		this.renderer.dispose();
 		this.container.removeChild(this.renderer.domElement);

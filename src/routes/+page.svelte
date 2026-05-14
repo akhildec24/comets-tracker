@@ -41,6 +41,7 @@
 	let showPerfOverlay = $state(false);
 	let showApproaches = $state(false);
 	let showISS = $state(false);
+	let issError = $state('');
 	let showMiniMap = $state(false);
 	let issPollTimer: ReturnType<typeof setInterval> | null = null;
 	let logScale = $state(false);
@@ -344,7 +345,9 @@
 				lookupBody(id).then(body => {
 					if (body) {
 						sceneInstance?.addSmallBody(body);
-						trackedBodies = [...trackedBodies, body];
+						if (!trackedBodies.find(b => b.id === body.id)) {
+							trackedBodies = [...trackedBodies, body];
+						}
 					}
 				});
 			}
@@ -471,12 +474,14 @@
 
 	const fetchISS = async () => {
 		try {
-			const res = await fetch('https://api.wheretheiss.at/v1/satellites/25544');
-			if (!res.ok) return;
+			const res = await fetch('/api/nasa?target=iss');
+			if (!res.ok) { issError = 'ISS API unavailable'; return; }
 			const data = await res.json();
+			if (data.error) { issError = data.error; return; }
 			sceneInstance?.updateISSPosition(data.latitude, data.longitude, data.altitude * 1000);
+			issError = '';
 		} catch {
-			// silently fail - ISS API may be rate limited
+			issError = 'ISS tracking failed — check connection';
 		}
 	};
 
@@ -502,6 +507,10 @@
 
 	{#if shareStatus}
 		<div class="share-toast">{shareStatus}</div>
+	{/if}
+
+	{#if issError}
+		<div class="share-toast" style="background: rgba(180, 40, 40, 0.9); border-color: rgba(255, 80, 80, 0.5);">{issError}</div>
 	{/if}
 
 	<div class="top-bar">

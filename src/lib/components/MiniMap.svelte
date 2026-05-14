@@ -28,9 +28,11 @@
 
 	let canvas: HTMLCanvasElement;
 	let rafId = 0;
+	let currentRange = 50;
 
 	const SIZE = 160;
-	const MAX_RANGE = 300; // scene units visible in mini-map
+	const MIN_RANGE = 50;
+	const MAX_RANGE_CAP = 2000;
 
 	onMount(() => {
 		const ctx = canvas.getContext('2d')!;
@@ -60,7 +62,20 @@
 			ctx.stroke();
 
 			const items = getData();
-			const scale = (SIZE / 2 - 6) / MAX_RANGE;
+			// Auto-adapt range based on furthest object and camera
+			let maxDist = MIN_RANGE;
+			for (const item of items) {
+				const d = Math.sqrt(item.x * item.x + item.z * item.z);
+				if (d > maxDist) maxDist = d;
+			}
+			const cam = getCameraState?.();
+			if (cam) {
+				const camDist = Math.sqrt(cam.px * cam.px + cam.pz * cam.pz);
+				if (camDist > maxDist) maxDist = camDist;
+			}
+			const range = Math.min(maxDist * 1.2, MAX_RANGE_CAP);
+			currentRange = range;
+			const scale = (SIZE / 2 - 6) / range;
 
 			for (const item of items) {
 				const px = SIZE / 2 + item.x * scale;
@@ -99,7 +114,6 @@
 			}
 
 			// Draw camera position and look direction
-			const cam = getCameraState?.();
 			if (cam) {
 				const camPx = SIZE / 2 + cam.px * scale;
 				const camPy = SIZE / 2 + cam.pz * scale;
@@ -176,7 +190,7 @@
 		const rect = canvas.getBoundingClientRect();
 		const cx = e.clientX - rect.left;
 		const cy = e.clientY - rect.top;
-		const scale = (SIZE / 2 - 6) / MAX_RANGE;
+		const scale = (SIZE / 2 - 6) / currentRange;
 		const x = (cx - SIZE / 2) / scale;
 		const z = (cy - SIZE / 2) / scale;
 		onNavigate(x, z);

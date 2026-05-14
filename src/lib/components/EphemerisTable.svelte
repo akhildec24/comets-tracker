@@ -13,7 +13,17 @@
 	const STEP_DAYS = 10;
 	const NUM_ROWS = 20;
 
+	// Throttle: only recalculate when JD changes by more than 1 day
+	let lastCalcJd = 0;
+	let cachedRows: { date: string; x: string; y: string; z: string; dist: string; vel: string }[] = [];
+
 	const rows = $derived.by(() => {
+		// Trigger reactivity on currentJd but only recalc if significant change
+		const _ = currentJd;
+		if (Math.abs(currentJd - lastCalcJd) < 1 && cachedRows.length > 0) {
+			return cachedRows;
+		}
+		lastCalcJd = currentJd;
 		const result: { date: string; x: string; y: string; z: string; dist: string; vel: string }[] = [];
 		const startJd = currentJd;
 		for (let i = 0; i < NUM_ROWS; i++) {
@@ -31,6 +41,7 @@
 				vel: vel.toFixed(1),
 			});
 		}
+		cachedRows = result;
 		return result;
 	});
 </script>
