@@ -110,10 +110,26 @@
 			<h2>KEYBOARD SHORTCUTS</h2>
 			<div class="shortcuts-grid">
 				<div class="shortcut-row"><kbd>SPACE</kbd><span>Play / pause time</span></div>
-				<div class="shortcut-row"><kbd>1-6</kbd><span>Set time speed</span></div>
-				<div class="shortcut-row"><kbd>R</kbd><span>Reset camera view</span></div>
-				<div class="shortcut-row"><kbd>C</kbd><span>Toggle comparison mode</span></div>
-				<div class="shortcut-row"><kbd>ESC</kbd><span>Close panel / settings</span></div>
+				<div class="shortcut-row"><kbd>1</kbd><span>Time speed: 0.1 days/sec</span></div>
+				<div class="shortcut-row"><kbd>2</kbd><span>Time speed: 1 day/sec (real-time)</span></div>
+				<div class="shortcut-row"><kbd>3</kbd><span>Time speed: 10 days/sec</span></div>
+				<div class="shortcut-row"><kbd>4</kbd><span>Time speed: 50 days/sec</span></div>
+				<div class="shortcut-row"><kbd>5</kbd><span>Time speed: 100 days/sec</span></div>
+				<div class="shortcut-row"><kbd>6</kbd><span>Time speed: 365 days/sec (1 year/sec)</span></div>
+				<div class="shortcut-row"><kbd>R</kbd><span>Reset camera to default view</span></div>
+				<div class="shortcut-row"><kbd>C</kbd><span>Toggle comparison mode (side-by-side)</span></div>
+				<div class="shortcut-row"><kbd>ESC</kbd><span>Deselect / close panels / close settings</span></div>
+			</div>
+		</section>
+
+		<section class="about-section">
+			<h2>MOUSE & TOUCH</h2>
+			<div class="shortcuts-grid">
+				<div class="shortcut-row"><kbd>CLICK</kbd><span>Select object in 3D scene</span></div>
+				<div class="shortcut-row"><kbd>DRAG</kbd><span>Rotate camera around target</span></div>
+				<div class="shortcut-row"><kbd>SCROLL</kbd><span>Zoom in / out</span></div>
+				<div class="shortcut-row"><kbd>RIGHT-DRAG</kbd><span>Pan camera</span></div>
+				<div class="shortcut-row"><kbd>MINI-MAP</kbd><span>Click to navigate camera</span></div>
 			</div>
 		</section>
 
