@@ -8,6 +8,7 @@
 <svelte:head>
 	<title>About — NEO Tracker</title>
 	<meta name="description" content="About NEO Tracker — a 3D solar system visualization tool powered by NASA JPL data." />
+	<style>body { overflow: auto !important; }</style>
 </svelte:head>
 
 <svelte:window style:overflow={mounted ? 'auto' : 'hidden'} />

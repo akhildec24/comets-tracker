@@ -2,8 +2,13 @@ import type { SmallBody, CloseApproach, OrbitalElements, TrajectoryPoint } from 
 
 const PROXY_URL = '/api/nasa';
 
-function buildProxyUrl(target: 'sbdb' | 'cad' | 'horizons', params: URLSearchParams): string {
-	return `${PROXY_URL}?target=${target}&q=${encodeURIComponent(params.toString())}`;
+const SBDB_DIRECT_URL = 'https://ssd-api.jpl.nasa.gov/sbdb.api';
+const CAD_DIRECT_URL = 'https://ssd-api.jpl.nasa.gov/cad.api';
+const HORIZONS_DIRECT_URL = 'https://ssd.jpl.nasa.gov/api/horizons.api';
+
+function buildApiUrl(target: 'sbdb' | 'cad' | 'horizons', params: URLSearchParams): string {
+	const base = target === 'sbdb' ? SBDB_DIRECT_URL : target === 'cad' ? CAD_DIRECT_URL : HORIZONS_DIRECT_URL;
+	return `${base}?${params.toString()}`;
 }
 
 // --- Cache layer ---
@@ -178,7 +183,7 @@ export async function lookupBody(designation: string, forceRefresh = false): Pro
 	});
 
 	try {
-		const res = await fetch(buildProxyUrl('sbdb', params));
+		const res = await fetch(buildApiUrl('sbdb', params));
 		if (!res.ok) return null;
 		const json: SBDBLookupResponse = await res.json();
 		const body = parseSBDBLookup(json);
@@ -257,7 +262,7 @@ export async function queryCloseApproaches(
 		'limit': String(limit)
 	};
 
-	const res = await fetch(buildProxyUrl('cad', new URLSearchParams(params)));
+	const res = await fetch(buildApiUrl('cad', new URLSearchParams(params)));
 	if (!res.ok) throw new Error(`CAD API failed: ${res.status}`);
 	const json: CADResponse = await res.json();
 
@@ -310,7 +315,7 @@ export async function getHorizonsEphemeris(
 	});
 
 	try {
-		const res = await fetch(buildProxyUrl('horizons', params));
+		const res = await fetch(buildApiUrl('horizons', params));
 		if (!res.ok) return [];
 		const json = await res.json();
 		const result: { jd: number; x: number; y: number; z: number }[] = [];
@@ -372,7 +377,7 @@ export async function getSpacecraftTrajectory(
 	});
 
 	try {
-		const res = await fetch(buildProxyUrl('horizons', params));
+		const res = await fetch(buildApiUrl('horizons', params));
 		if (!res.ok) return [];
 		const json = await res.json();
 		const result: TrajectoryPoint[] = [];

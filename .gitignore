@@ -33,3 +33,9 @@ npm-debug.log*
 
 # Cache
 .cache/
+
+# Deployment (contains VPS credentials — never commit)
+deploy.sh
+ecosystem.config.cjs
+.env.deploy
+.ssh-deploy-key
