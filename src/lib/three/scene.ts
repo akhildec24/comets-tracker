@@ -1406,6 +1406,18 @@ export class SolarSystemScene {
 		this.followTarget = null;
 	}
 
+	public resetCamera() {
+		this.followTarget = null;
+		this.cameraTween = {
+			from: this.camera.position.clone(),
+			to: new THREE.Vector3(0, 200, 400),
+			targetFrom: this.controls.target.clone(),
+			targetTo: new THREE.Vector3(0, 0, 0),
+			start: performance.now(),
+			duration: 1500,
+		};
+	}
+
 	public getMiniMapData(): { x: number; z: number; name: string; type: string; color: string }[] {
 		const items: { x: number; z: number; name: string; type: string; color: string }[] = [];
 		// Sun

@@ -216,9 +216,9 @@ export async function lookupNotableBodies(designations: string[], forceRefresh =
 		stale.push(des);
 	}
 
-	// Fetch stale/missing entries
+	// Fetch stale/missing entries (small batches with delay to avoid rate limiting)
 	if (stale.length > 0) {
-		const batchSize = 5;
+		const batchSize = 3;
 		for (let i = 0; i < stale.length; i += batchSize) {
 			const batch = stale.slice(i, i + batchSize);
 			const bodies = await Promise.all(
@@ -232,6 +232,10 @@ export async function lookupNotableBodies(designations: string[], forceRefresh =
 					if (idx >= 0) results[idx] = body;
 					else results.push(body);
 				}
+			}
+			// Small delay between batches to avoid NASA API rate limiting
+			if (i + batchSize < stale.length) {
+				await new Promise(r => setTimeout(r, 200));
 			}
 		}
 	}

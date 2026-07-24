@@ -122,10 +122,13 @@
 	};
 
 	const resetView = () => {
-		sceneInstance?.clearFollow();
+		sceneInstance?.resetCamera();
 		sceneInstance?.setIsolatedView(false);
 		isolated = false;
 		cameraFollowing = false;
+		selected = null;
+		selectedBody = null;
+		selectedPlanet = null;
 	};
 
 	const handleTimeChange = (newJD: number) => {
@@ -829,8 +832,8 @@
 		</div>
 	{/if}
 
-	{#if cameraFollowing && !selected}
-		<button class="reset-view-btn" onclick={resetView} title="Exit follow mode and reset view">
+	{#if cameraFollowing || selected}
+		<button class="reset-view-btn" onclick={resetView} title="Reset view and deselect">
 			⟲ RESET VIEW
 		</button>
 	{/if}
