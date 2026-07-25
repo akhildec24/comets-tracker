@@ -23,6 +23,7 @@
 	},
 	"dependencies": {
 		"@types/three": "^0.185.1",
+		"better-sqlite3": "^12.11.1",
 		"three": "^0.185.1"
 	}
 }

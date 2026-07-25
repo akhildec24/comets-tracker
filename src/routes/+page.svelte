@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { SolarSystemScene } from '$lib/three/scene';
-	import { lookupNotableBodies, queryCloseApproaches, lookupBody } from '$lib/api/nasa';
+	import { lookupNotableBodies, queryCloseApproaches, lookupBody, fetchNotableBodiesFromDB } from '$lib/api/nasa';
 	import { NOTABLE_OBJECTS, PLANETS, INTERSTELLAR_MISSIONS } from '$lib/solarSystem';
 	import { currentJD } from '$lib/orbital';
 	import type { SmallBody, CloseApproach, Spacecraft, PlanetData } from '$lib/types';
@@ -215,10 +215,25 @@
 		if (!forceRefresh && trackedBodies.length > 0) return;
 		bodiesLoading = true;
 		errorMessage = '';
-		cacheStatus = 'Loading from cache...';
+		cacheStatus = 'Loading objects...';
 		try {
-			const designations = NOTABLE_OBJECTS.map(o => o.des);
-			const bodies = await lookupNotableBodies(designations, forceRefresh);
+			let bodies: SmallBody[] = [];
+
+			if (forceRefresh) {
+				// On refresh, go straight to NASA API
+				const designations = NOTABLE_OBJECTS.map(o => o.des);
+				bodies = await lookupNotableBodies(designations, true);
+			} else {
+				// Try server-side database first (single request, instant)
+				bodies = await fetchNotableBodiesFromDB();
+
+				// If DB returned nothing, fall back to individual NASA API calls
+				if (bodies.length === 0) {
+					const designations = NOTABLE_OBJECTS.map(o => o.des);
+					bodies = await lookupNotableBodies(designations, false);
+				}
+			}
+
 			for (const body of bodies) {
 				sceneInstance?.addSmallBody(body);
 				if (!trackedBodies.find(b => b.id === body.id)) {

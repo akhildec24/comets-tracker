@@ -194,6 +194,22 @@ export async function lookupBody(designation: string, forceRefresh = false): Pro
 	}
 }
 
+// Fetch all notable bodies from server-side SQLite database (single request, instant)
+export async function fetchNotableBodiesFromDB(): Promise<SmallBody[]> {
+	try {
+		const res = await fetch('/api/bodies');
+		if (!res.ok) return [];
+		const bodies: SmallBody[] = await res.json();
+		// Cache each body in localStorage for offline use
+		for (const body of bodies) {
+			setCached(`body_${body.des}`, body);
+		}
+		return bodies;
+	} catch {
+		return [];
+	}
+}
+
 // Batch-lookup multiple designations (with concurrency limit)
 // Returns cached bodies immediately, then fetches stale ones in background
 export async function lookupNotableBodies(designations: string[], forceRefresh = false): Promise<SmallBody[]> {

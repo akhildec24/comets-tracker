@@ -39,3 +39,9 @@ deploy.sh
 ecosystem.config.cjs
 .env.deploy
 .ssh-deploy-key
+
+# Database (built locally, deployed via SCP — never commit)
+notable-bodies.db
+notable-bodies.db-wal
+notable-bodies.db-shm
+build-db.js
